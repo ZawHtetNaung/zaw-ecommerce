@@ -1,16 +1,47 @@
 .DS_Store
-*/.DS_Store
-node_modules/
-*/node_modules/
-dist/
-*/dist/
-.env
-*.env
-.proenv
-mysql-backups/
-mysql-official/
+Thumbs.db
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local helper tooling
 frankenphp-local/
+mysql-backups/
+mysql-messaraliving/
+mysql-official/
 phpmyadmin-local/
+repair-local-mysql.sh
+reset-reinstall-mysql.sh
+run-laravel-mysql-setup.sh
 Woodmart/
 cv_output/
 demomessaralivingphoto/
+
+# Laravel backend
+/ecommerce-api/.env
+/ecommerce-api/.env.backup
+/ecommerce-api/.phpunit.result.cache
+/ecommerce-api/vendor/
+/ecommerce-api/node_modules/
+/ecommerce-api/public/build/
+/ecommerce-api/public/hot
+/ecommerce-api/public/storage
+/ecommerce-api/bootstrap/cache/*.php
+/ecommerce-api/storage/*.key
+/ecommerce-api/storage/logs/*
+/ecommerce-api/storage/framework/cache/**
+/ecommerce-api/storage/framework/sessions/**
+/ecommerce-api/storage/framework/testing/**
+/ecommerce-api/storage/framework/views/**
+/ecommerce-api/storage/framework/*.php
+/ecommerce-api/storage/pail/
+/ecommerce-api/database/*.sqlite
+
+# React frontend
+/ecommerce-react/.env
+/ecommerce-react/.proenv
+/ecommerce-react/node_modules/
+/ecommerce-react/dist/

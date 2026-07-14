@@ -28,6 +28,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/categories/:categorySlug" element={<PublicCategoryPage />} />
+      <Route path="/product/:productSlug" element={<PublicProductDetailPage />} />
       <Route path="/categories/:categorySlug/sub-categories/:subCategorySlug" element={<PublicSubCategoryProductsPage />} />
       <Route
         path="/categories/:categorySlug/sub-categories/:subCategorySlug/products/:productSlug"

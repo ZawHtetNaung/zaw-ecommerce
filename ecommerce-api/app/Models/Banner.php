@@ -11,10 +11,12 @@ class Banner extends Model
     use HasFactory;
 
     protected $fillable = [
+        'wordpress_id',
         'title',
         'subtitle',
         'button_text',
         'button_link',
+        'source_url',
         'button_pos_x',
         'button_pos_y',
         'button_style',

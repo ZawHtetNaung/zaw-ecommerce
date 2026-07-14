@@ -12,9 +12,11 @@ class Brand extends Model
     use HasFactory;
 
     protected $fillable = [
+        'wordpress_id',
         'name',
         'slug',
         'image_path',
+        'source_url',
         'is_active',
     ];
 

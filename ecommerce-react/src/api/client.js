@@ -87,6 +87,10 @@ export async function fetchPublicSubCategoryProducts(categorySlug, subCategorySl
 }
 
 export async function fetchPublicProduct(categorySlug, subCategorySlug, productSlug) {
+  if (!categorySlug || !subCategorySlug) {
+    const { data } = await api.get(`/api/public/products/${productSlug}`);
+    return data;
+  }
   const { data } = await api.get(`/api/public/categories/${categorySlug}/sub-categories/${subCategorySlug}/products/${productSlug}`);
   return data;
 }

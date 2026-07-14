@@ -46,6 +46,29 @@ export default function PublicProductDetailPage() {
     };
   }, [categorySlug, subCategorySlug, productSlug]);
 
+  useEffect(() => {
+    if (!product) return undefined;
+    const previousTitle = document.title;
+    document.title = product.seo_title || `${product.name} | Messara Living`;
+    let description = document.querySelector('meta[name="description"]');
+    const created = !description;
+    if (created) {
+      description = document.createElement('meta');
+      description.name = 'description';
+      document.head.appendChild(description);
+    }
+    const previousDescription = description.content;
+    description.content = product.seo_description || product.short_description || product.description || '';
+    return () => {
+      document.title = previousTitle;
+      if (created) description.remove();
+      else description.content = previousDescription;
+    };
+  }, [product]);
+
+  const resolvedCategorySlug = categorySlug || product?.category?.slug;
+  const resolvedSubCategorySlug = subCategorySlug || product?.sub_category?.slug;
+
   const images = useMemo(() => {
     if (!product) return [];
     if (Array.isArray(product.image_urls) && product.image_urls.length > 0) return product.image_urls;
@@ -67,16 +90,16 @@ export default function PublicProductDetailPage() {
     <div className="catalog-page">
       <div className="catalog-shell product-detail-shell">
         <div className="catalog-header">
-          <Link to={`/categories/${categorySlug}/sub-categories/${subCategorySlug}`} className="catalog-home-link">← Back to Products</Link>
+          <Link to={`/categories/${resolvedCategorySlug}/sub-categories/${resolvedSubCategorySlug}`} className="catalog-home-link">← Back to Products</Link>
           <img className="catalog-logo" src="/messaraliving-logo.png" alt="MessaraLiving" />
         </div>
 
         <div className="catalog-breadcrumbs">
           <Link to="/">Home</Link>
           <span>/</span>
-          <Link to={`/categories/${categorySlug}`}>{product?.category?.name || 'Category'}</Link>
+          <Link to={`/categories/${resolvedCategorySlug}`}>{product?.category?.name || 'Category'}</Link>
           <span>/</span>
-          <Link to={`/categories/${categorySlug}/sub-categories/${subCategorySlug}`}>{product?.sub_category?.name || 'Products'}</Link>
+          <Link to={`/categories/${resolvedCategorySlug}/sub-categories/${resolvedSubCategorySlug}`}>{product?.sub_category?.name || 'Products'}</Link>
           <span>/</span>
           <span>{loading ? 'Loading...' : product?.name || 'Product'}</span>
         </div>
@@ -87,7 +110,7 @@ export default function PublicProductDetailPage() {
           <section className="catalog-empty-state">
             <h1>{error}</h1>
             <p>We could not load that product right now. Please return to the product list and try again.</p>
-            <Link to={`/categories/${categorySlug}/sub-categories/${subCategorySlug}`} className="catalog-primary-link">Back to Products</Link>
+            <Link to={`/categories/${resolvedCategorySlug}/sub-categories/${resolvedSubCategorySlug}`} className="catalog-primary-link">Back to Products</Link>
           </section>
         ) : product ? (
           <>
@@ -190,7 +213,7 @@ export default function PublicProductDetailPage() {
                       {product.measurements.map((measurement) => (
                         <div key={measurement.id} className="public-info-row">
                           <span>{measurement.name}</span>
-                          <strong>{measurement.value} {measurement.unit}</strong>
+                          <strong>{measurement.pivot?.value ?? measurement.value} {measurement.pivot?.unit ?? measurement.unit}</strong>
                         </div>
                       ))}
                     </div>

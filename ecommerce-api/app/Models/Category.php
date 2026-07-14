@@ -12,9 +12,13 @@ class Category extends Model
     use HasFactory;
 
     protected $fillable = [
+        'wordpress_id',
         'name',
         'slug',
         'description',
+        'seo_title',
+        'seo_description',
+        'source_url',
         'image_path',
         'is_active',
     ];

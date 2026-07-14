@@ -14,16 +14,22 @@ class Product extends Model
     use HasFactory;
 
     protected $fillable = [
+        'wordpress_id',
         'category_id',
         'sub_category_id',
         'brand_id',
         'event_id',
         'name',
         'slug',
+        'sku',
         'price',
         'discount_price',
         'stock',
         'description',
+        'short_description',
+        'seo_title',
+        'seo_description',
+        'source_url',
         'image_path',
         'is_active',
     ];
@@ -74,7 +80,7 @@ class Product extends Model
 
     public function measurements(): BelongsToMany
     {
-        return $this->belongsToMany(Measurement::class);
+        return $this->belongsToMany(Measurement::class)->withPivot(['value', 'unit']);
     }
 
     public function getImageUrlAttribute(): ?string

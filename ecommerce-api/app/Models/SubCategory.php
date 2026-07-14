@@ -13,10 +13,12 @@ class SubCategory extends Model
     use HasFactory;
 
     protected $fillable = [
+        'wordpress_id',
         'category_id',
         'name',
         'slug',
         'description',
+        'source_url',
         'image_path',
         'is_active',
     ];

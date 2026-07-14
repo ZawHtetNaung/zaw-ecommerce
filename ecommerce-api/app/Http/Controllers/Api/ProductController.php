@@ -135,6 +135,25 @@ class ProductController extends Controller
         return response()->json($product);
     }
 
+    public function publicShowBySlug(string $productSlug)
+    {
+        return response()->json(
+            Product::query()
+                ->where('slug', $productSlug)
+                ->where('is_active', true)
+                ->with([
+                    'category:id,name,slug,description,image_path',
+                    'subCategory:id,name,slug,description,image_path,category_id',
+                    'brand:id,name,image_path,is_active',
+                    'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
+                    'images',
+                    'colors:id,name,image_path,is_active',
+                    'measurements:id,name,value,unit,is_active',
+                ])
+                ->firstOrFail()
+        );
+    }
+
     public function index()
     {
         return response()->json(

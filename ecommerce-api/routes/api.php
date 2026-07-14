@@ -19,6 +19,7 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/public/banners', [BannerController::class, 'publicIndex']);
 Route::get('/public/categories', [CategoryController::class, 'publicIndex']);
 Route::get('/public/products', [ProductController::class, 'publicIndex']);
+Route::get('/public/products/{productSlug}', [ProductController::class, 'publicShowBySlug']);
 Route::get('/public/categories/{slug}', [CategoryController::class, 'publicShow']);
 Route::get('/public/categories/{categorySlug}/sub-categories/{subCategorySlug}/products', [ProductController::class, 'publicIndexBySubCategory']);
 Route::get('/public/categories/{categorySlug}/sub-categories/{subCategorySlug}/products/{productSlug}', [ProductController::class, 'publicShow']);

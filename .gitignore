@@ -26,6 +26,10 @@ demomessaralivingphoto/
 /ecommerce-api/.phpunit.result.cache
 /ecommerce-api/vendor/
 /ecommerce-api/node_modules/
+/ecommerce-api/.composer/
+/ecommerce-api/composer.phar
+/ecommerce-api/composer-setup.php
+/ecommerce-api/server*.log
 /ecommerce-api/public/build/
 /ecommerce-api/public/hot
 /ecommerce-api/public/storage
@@ -45,3 +49,5 @@ demomessaralivingphoto/
 /ecommerce-react/.proenv
 /ecommerce-react/node_modules/
 /ecommerce-react/dist/
+/ecommerce-react/.npm-cache/
+/ecommerce-react/server*.log

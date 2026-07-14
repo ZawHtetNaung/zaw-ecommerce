@@ -10,6 +10,17 @@ use Illuminate\Validation\Rule;
 
 class BannerController extends Controller
 {
+    public function publicIndex()
+    {
+        return response()->json(
+            Banner::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+        );
+    }
+
     public function index()
     {
         return response()->json(

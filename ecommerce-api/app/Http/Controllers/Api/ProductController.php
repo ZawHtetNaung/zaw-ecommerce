@@ -15,6 +15,43 @@ use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
+    public function publicIndex(Request $request)
+    {
+        $perPage = min(max($request->integer('per_page', 8), 4), 24);
+
+        return response()->json(
+            Product::query()
+                ->select([
+                    'id',
+                    'category_id',
+                    'sub_category_id',
+                    'brand_id',
+                    'event_id',
+                    'name',
+                    'slug',
+                    'price',
+                    'discount_price',
+                    'stock',
+                    'description',
+                    'image_path',
+                    'is_active',
+                    'created_at',
+                ])
+                ->where('is_active', true)
+                ->whereHas('category', fn ($query) => $query->where('is_active', true))
+                ->whereHas('subCategory', fn ($query) => $query->where('is_active', true))
+                ->with([
+                    'category:id,name,slug',
+                    'subCategory:id,category_id,name,slug',
+                    'brand:id,name,image_path,is_active',
+                    'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
+                    'images',
+                ])
+                ->orderByDesc('id')
+                ->paginate($perPage)
+        );
+    }
+
     public function publicIndexBySubCategory(string $categorySlug, string $subCategorySlug)
     {
         $category = Category::query()

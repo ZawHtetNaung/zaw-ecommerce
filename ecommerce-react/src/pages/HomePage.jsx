@@ -14,68 +14,188 @@ import {
   cilSearch,
   cilTruck,
 } from '@coreui/icons';
-import { fetchPublicCategories, fetchPublicEvents } from '../api/client';
+import { fetchPublicBanners, fetchPublicCategories, fetchPublicEvents, fetchPublicProducts } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
 const rooms = [
   {
     title: 'Living Room',
-    description: 'Soft neutrals, low-profile seating, and layered lighting.',
-    tone: 'Warm linen textures with oak accents.',
+    description: 'Layered seating, warm woods, and statement textiles for a softer premium look.',
+    tone: 'Designed for everyday calm with bold details.',
     image:
-      'https://images.unsplash.com/photo-1758957530781-4ff54e09bee2?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000',
+      'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80',
   },
   {
     title: 'Dining Room',
-    description: 'Compact tables that expand for hosting.',
-    tone: 'Matte black frames with light birch tops.',
+    description: 'Flexible tables and sculptural chairs that work for both family time and hosting.',
+    tone: 'Balanced finishes with a refined, modern edge.',
     image:
-      'https://images.unsplash.com/photo-1745835449652-72ec0de4f732?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000',
+      'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1600&q=80',
   },
   {
     title: 'Bedroom',
-    description: 'Storage-forward frames and calming palettes.',
-    tone: 'Mist blue, walnut, and woven cotton.',
+    description: 'Storage-forward compositions with cozy textures and quieter tones.',
+    tone: 'Made for restful spaces that still feel elevated.',
     image:
-      'https://images.unsplash.com/photo-1664908790479-f6e9f76034db?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000',
+      'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80',
   },
 ];
 
 const collections = [
   {
-    title: 'Minimal Storage',
-    description: 'Modular shelves that scale with your home.',
+    title: 'Statement Sofas',
+    description: 'Deep seats, cleaner lines, and fabrics that soften the whole room.',
     image:
-      'https://images.unsplash.com/photo-1745835449652-72ec0de4f732?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000',
+      'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1400&q=80',
   },
   {
-    title: 'Soft Lighting',
-    description: 'Warm LEDs and sculptural lamps.',
+    title: 'Editorial Storage',
+    description: 'Closed cabinets and open display units built for a polished everyday look.',
     image:
-      'https://images.unsplash.com/photo-1664908790479-f6e9f76034db?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000',
+      'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=80',
   },
   {
-    title: 'Kitchen Essentials',
-    description: 'Smart organizers and prep-friendly surfaces.',
+    title: 'Dining Essentials',
+    description: 'Tables, sideboards, and seating for layouts that feel intentional.',
     image:
-      'https://images.unsplash.com/photo-1745835449652-72ec0de4f732?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000',
+      'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1400&q=80',
   },
   {
-    title: 'Work From Home',
-    description: 'Compact desks, ergonomic seating.',
+    title: 'Workspace Corners',
+    description: 'Compact desks and ergonomic shapes for modern work-from-home settings.',
     image:
-      'https://images.unsplash.com/photo-1758957530781-4ff54e09bee2?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000',
+      'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80',
   },
 ];
 
+const fallbackBanners = [
+  {
+    id: 'fallback-1',
+    title: 'Made for homes that want clean lines and a stronger identity.',
+    subtitle: 'Discover living, dining, bedroom, and storage pieces curated for a premium modern lifestyle.',
+    button_text: 'Shop collections',
+    button_link: '#collections',
+    button_pos_x: 22,
+    button_pos_y: 78,
+    button_style: 'solid',
+    button_radius: 999,
+    button_bg_color: '#e2211c',
+    button_text_color: '#ffffff',
+    button_width: 170,
+    button_height: 48,
+    button_text_size: 14,
+    image_url: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=2200&q=80',
+  },
+  {
+    id: 'fallback-2',
+    title: 'Storage, seating, and surfaces that feel calmer and more refined.',
+    subtitle: 'Premium everyday furniture with a storefront designed to feel modern, easy, and editorial.',
+    button_text: 'Browse categories',
+    button_link: '#featured-categories',
+    button_pos_x: 24,
+    button_pos_y: 78,
+    button_style: 'outline',
+    button_radius: 999,
+    button_bg_color: '#ffffff',
+    button_text_color: '#ffffff',
+    button_width: 190,
+    button_height: 48,
+    button_text_size: 14,
+    image_url: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=2200&q=80',
+  },
+  {
+    id: 'fallback-3',
+    title: 'Curated corners for living, dining, rest, and work.',
+    subtitle: 'A more premium ecommerce experience with live categories, event offers, and branded hero banners.',
+    button_text: 'See room ideas',
+    button_link: '#rooms',
+    button_pos_x: 22,
+    button_pos_y: 78,
+    button_style: 'ghost',
+    button_radius: 999,
+    button_bg_color: '#ffffff',
+    button_text_color: '#ffffff',
+    button_width: 170,
+    button_height: 48,
+    button_text_size: 14,
+    image_url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=2200&q=80',
+  },
+];
+
+function resolveAssetUrl(apiBaseUrl, imageUrl, imagePath) {
+  if (imageUrl) {
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    if (imageUrl.startsWith('/')) {
+      return `${apiBaseUrl}${imageUrl}`;
+    }
+
+    return `${apiBaseUrl}/${imageUrl.replace(/^\/+/, '')}`;
+  }
+
+  if (imagePath) {
+    return `${apiBaseUrl}/storage/${String(imagePath).replace(/^\/+/, '')}`;
+  }
+
+  return '';
+}
+
+function formatCurrency(value) {
+  return `AED ${Number(value || 0).toFixed(2)}`;
+}
+
+function formatEventBadge(eventItem) {
+  const value = Number(eventItem?.discount_value || 0);
+  if (!value) return 'Featured drop';
+  return eventItem?.discount_type === 'percent' ? `${value}% off` : `AED ${value.toFixed(0)} off`;
+}
+
+function isRouteLink(link) {
+  return typeof link === 'string' && /^\/(?!\/)/.test(link);
+}
+
+function isExternalLink(link) {
+  return typeof link === 'string' && /^https?:\/\//i.test(link);
+}
+
+function getBannerButtonStyle(banner) {
+  const style = banner?.button_style || 'solid';
+  const backgroundColor = banner?.button_bg_color || '#e2211c';
+  const textColor = banner?.button_text_color || '#ffffff';
+
+  return {
+    width: `${Math.max(Number(banner?.button_width || 160), 100)}px`,
+    height: `${Math.max(Number(banner?.button_height || 44), 38)}px`,
+    borderRadius: `${Math.max(Number(banner?.button_radius ?? 24), 0)}px`,
+    fontSize: `${Math.max(Number(banner?.button_text_size ?? 14), 12)}px`,
+    background:
+      style === 'solid'
+        ? backgroundColor
+        : style === 'ghost'
+          ? 'rgba(255, 255, 255, 0.12)'
+          : 'transparent',
+    color: textColor,
+    borderColor: style === 'ghost' ? 'rgba(255, 255, 255, 0.3)' : backgroundColor,
+    boxShadow: style === 'solid' ? '0 18px 38px rgba(17, 17, 17, 0.22)' : 'none',
+  };
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { login, register, isAuthenticated, user } = useAuth();
   const [categories, setCategories] = useState([]);
   const [events, setEvents] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [productPagination, setProductPagination] = useState({ currentPage: 1, lastPage: 1, total: 0 });
+  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
+  const [productLoadError, setProductLoadError] = useState('');
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const categoryTrackRef = useRef(null);
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
   const eventTrackRefs = useRef({});
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
   const [authModal, setAuthModal] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', password_confirmation: '' });
@@ -83,43 +203,132 @@ export default function HomePage() {
   const [registerError, setRegisterError] = useState('');
   const [submittingLogin, setSubmittingLogin] = useState(false);
   const [submittingRegister, setSubmittingRegister] = useState(false);
+  const dashboardPath = '/dashboard/overview';
 
   useEffect(() => {
-    async function loadCategories() {
+    async function loadHomeData() {
       try {
-        const data = await fetchPublicCategories();
-        setCategories(Array.isArray(data) ? data : []);
+        const [categoriesData, eventsData, bannersData, productsData] = await Promise.all([
+          fetchPublicCategories(),
+          fetchPublicEvents(),
+          fetchPublicBanners(),
+          fetchPublicProducts(1, 8),
+        ]);
+
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+        setEvents(Array.isArray(eventsData) ? eventsData : []);
+        setBanners(Array.isArray(bannersData) ? bannersData : []);
+        setProducts(Array.isArray(productsData?.data) ? productsData.data : []);
+        setProductPagination({
+          currentPage: Number(productsData?.current_page || 1),
+          lastPage: Number(productsData?.last_page || 1),
+          total: Number(productsData?.total || 0),
+        });
       } catch {
         setCategories([]);
-      }
-    }
-
-    async function loadEvents() {
-      try {
-        const data = await fetchPublicEvents();
-        setEvents(Array.isArray(data) ? data : []);
-      } catch {
         setEvents([]);
+        setBanners([]);
+        setProducts([]);
       }
     }
 
-    loadCategories();
-    loadEvents();
+    loadHomeData();
   }, []);
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0));
   }, [categories]);
 
+  const showcaseEvents = useMemo(() => {
+    return events.filter((eventItem) => Array.isArray(eventItem?.products) && eventItem.products.length > 0);
+  }, [events]);
+
+  const displayBanners = useMemo(() => {
+    const liveBanners = [...banners]
+      .filter((banner) => banner?.is_active ?? true)
+      .sort((a, b) => (Number(a?.sort_order) || 0) - (Number(b?.sort_order) || 0));
+
+    return liveBanners.length > 0 ? liveBanners : fallbackBanners;
+  }, [banners]);
+
+  useEffect(() => {
+    if (!displayBanners.length) {
+      return;
+    }
+
+    if (activeBannerIndex >= displayBanners.length) {
+      setActiveBannerIndex(0);
+    }
+  }, [activeBannerIndex, displayBanners.length]);
+
+  useEffect(() => {
+    if (displayBanners.length < 2) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setActiveBannerIndex((current) => (current + 1) % displayBanners.length);
+    }, 5500);
+
+    return () => window.clearInterval(intervalId);
+  }, [displayBanners.length]);
+
+  const activeBanner = displayBanners[activeBannerIndex] ?? displayBanners[0] ?? null;
+  const activeBannerImage = activeBanner
+    ? resolveAssetUrl(apiBaseUrl, activeBanner.image_url, activeBanner.image_path)
+    : '';
+  const activeBannerButtonStyle = activeBanner ? getBannerButtonStyle(activeBanner) : {};
+  const activeBannerButtonPosition = {
+    left: `${Number(activeBanner?.button_pos_x ?? 22)}%`,
+    top: `${Number(activeBanner?.button_pos_y ?? 78)}%`,
+  };
+  const bannerLink = activeBanner?.button_link?.trim() || '#collections';
+  const hasMoreProducts = productPagination.currentPage < productPagination.lastPage;
+
   function scrollEventProducts(eventId, direction) {
     const ref = eventTrackRefs.current[eventId];
     if (!ref) return;
-    ref.scrollBy({ left: direction * 320, behavior: 'smooth' });
+    ref.scrollBy({ left: direction * 340, behavior: 'smooth' });
   }
 
   function scrollCategories(direction) {
     if (!categoryTrackRef.current) return;
-    categoryTrackRef.current.scrollBy({ left: direction * 260, behavior: 'smooth' });
+    categoryTrackRef.current.scrollBy({ left: direction * 280, behavior: 'smooth' });
+  }
+
+  function showPreviousBanner() {
+    setActiveBannerIndex((current) => (current - 1 + displayBanners.length) % displayBanners.length);
+  }
+
+  function showNextBanner() {
+    setActiveBannerIndex((current) => (current + 1) % displayBanners.length);
+  }
+
+  async function loadMoreProducts() {
+    if (loadingMoreProducts || !hasMoreProducts) return;
+
+    setLoadingMoreProducts(true);
+    setProductLoadError('');
+
+    try {
+      const nextPage = productPagination.currentPage + 1;
+      const productsData = await fetchPublicProducts(nextPage, 8);
+      const nextProducts = Array.isArray(productsData?.data) ? productsData.data : [];
+
+      setProducts((currentProducts) => {
+        const existingIds = new Set(currentProducts.map((product) => product.id));
+        return [...currentProducts, ...nextProducts.filter((product) => !existingIds.has(product.id))];
+      });
+      setProductPagination({
+        currentPage: Number(productsData?.current_page || nextPage),
+        lastPage: Number(productsData?.last_page || nextPage),
+        total: Number(productsData?.total || products.length + nextProducts.length),
+      });
+    } catch (requestError) {
+      setProductLoadError(requestError.response?.data?.message || 'Unable to load more products.');
+    } finally {
+      setLoadingMoreProducts(false);
+    }
   }
 
   function openLogin() {
@@ -154,7 +363,7 @@ export default function HomePage() {
     try {
       await login(loginForm);
       closeAuthModal();
-      navigate('/dashboard');
+      navigate(dashboardPath);
     } catch (requestError) {
       setLoginError(requestError.response?.data?.message || 'Login failed.');
     } finally {
@@ -170,7 +379,7 @@ export default function HomePage() {
     try {
       await register(registerForm);
       closeAuthModal();
-      navigate('/dashboard');
+      navigate(dashboardPath);
     } catch (requestError) {
       setRegisterError(requestError.response?.data?.message || 'Unable to register.');
     } finally {
@@ -179,7 +388,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="home-page">
+    <div className="home-page premium-home">
       <div className="top-bar">
         <div className="top-bar-col">
           <button type="button" className="lang-switch">
@@ -201,10 +410,12 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
       <header className="home-nav">
         <div className="home-brand">
-          <img className="home-logo" src="/messaraliving-logo.png" alt="" />
+          <img className="home-logo" src="/messaraliving-logo.png" alt="MessaraLiving" />
         </div>
+
         <div className="home-social">
           <a className="social-dot" href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook">
             <CIcon icon={cibFacebookF} />
@@ -225,32 +436,47 @@ export default function HomePage() {
             <CIcon icon={cibTiktok} />
           </a>
         </div>
+
         <div className="home-search center-search">
           <div className="home-search-field">
             <CIcon icon={cilSearch} className="search-icon" />
             <input type="text" placeholder="what are you looking for?" />
           </div>
         </div>
+
         <div className="home-links">
           <a href="#services">Services</a>
           <a href="#news">News</a>
         </div>
+
         <div className="home-auth">
-          <button type="button" className="auth-link" onClick={openLogin}>
-            Login
-          </button>
-          <button type="button" className="auth-link" onClick={openRegister}>
-            Register
-          </button>
+          {isAuthenticated ? (
+            <>
+              <span className="auth-user">{user?.name || 'My account'}</span>
+              <Link className="dashboard-pill" to={dashboardPath}>
+                Dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <button type="button" className="auth-link" onClick={openLogin}>
+                Login
+              </button>
+              <button type="button" className="auth-link" onClick={openRegister}>
+                Register
+              </button>
+            </>
+          )}
         </div>
+
         <div className="home-icons">
-          <Link to="/dashboard" title="Transport">
+          <Link to={dashboardPath} title="Transport">
             <CIcon icon={cilTruck} />
           </Link>
-          <Link to="/dashboard" title="Wishlist">
+          <Link to={dashboardPath} title="Wishlist">
             <CIcon icon={cilHeart} />
           </Link>
-          <Link to="/dashboard" title="Cart">
+          <Link to={dashboardPath} title="Cart">
             <CIcon icon={cilCart} />
           </Link>
         </div>
@@ -270,8 +496,7 @@ export default function HomePage() {
             </button>
             <div className="category-track" ref={categoryTrackRef}>
               {sortedCategories.map((category) => {
-                const imageUrl =
-                  category.image_url || (category.image_path ? `${apiBaseUrl}/storage/${category.image_path}` : '');
+                const imageUrl = resolveAssetUrl(apiBaseUrl, category.image_url, category.image_path);
 
                 return (
                   <Link
@@ -302,20 +527,89 @@ export default function HomePage() {
         </div>
       )}
 
-      {events.length > 0 && (
-        <section className="event-showcase">
-          {events.map((eventItem) => (
+      <section className="hero premium-hero">
+        <div className="banner-slider-shell">
+          <div className="banner-slider-stage">
+            {activeBannerImage ? (
+              <img className="banner-slide-media" src={activeBannerImage} alt={activeBanner?.title || 'Banner'} />
+            ) : (
+              <div className="banner-slide-placeholder" />
+            )}
+            <div className="banner-slide-overlay" />
+
+            <div className="banner-slide-copy">
+              <span className="banner-kicker">MessaraLiving Selection</span>
+              <h1>{activeBanner?.title || 'Curated furniture for refined daily living.'}</h1>
+              <p>
+                {activeBanner?.subtitle ||
+                  'Explore modern furniture, premium textures, and cleaner room styling with an ecommerce homepage built to feel more polished.'}
+              </p>
+              <div className="banner-slide-meta">
+                <span>Premium furniture</span>
+                <span>Live categories</span>
+                <span>Event offers</span>
+              </div>
+            </div>
+
+            {activeBanner?.button_text &&
+              (isRouteLink(bannerLink) ? (
+                <Link
+                  to={bannerLink}
+                  className={`banner-slide-button is-${activeBanner.button_style || 'solid'}`}
+                  style={{ ...activeBannerButtonStyle, ...activeBannerButtonPosition }}
+                >
+                  {activeBanner.button_text}
+                </Link>
+              ) : (
+                <a
+                  href={bannerLink}
+                  className={`banner-slide-button is-${activeBanner.button_style || 'solid'}`}
+                  style={{ ...activeBannerButtonStyle, ...activeBannerButtonPosition }}
+                  target={isExternalLink(bannerLink) ? '_blank' : undefined}
+                  rel={isExternalLink(bannerLink) ? 'noreferrer' : undefined}
+                >
+                  {activeBanner.button_text}
+                </a>
+              ))}
+          </div>
+
+          <div className="banner-slider-controls">
+            <div className="banner-dots">
+              {displayBanners.map((banner, index) => (
+                <button
+                  key={banner.id}
+                  type="button"
+                  className={`banner-dot ${index === activeBannerIndex ? 'active' : ''}`}
+                  onClick={() => setActiveBannerIndex(index)}
+                  aria-label={`Show banner ${index + 1}: ${banner.title}`}
+                />
+              ))}
+            </div>
+
+            {displayBanners.length > 1 && (
+              <div className="banner-arrows">
+                <button type="button" className="banner-arrow" onClick={showPreviousBanner} aria-label="Previous banner">
+                  ‹
+                </button>
+                <button type="button" className="banner-arrow" onClick={showNextBanner} aria-label="Next banner">
+                  ›
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </section>
+
+      {showcaseEvents.length > 0 && (
+        <section className="event-showcase" id="events">
+          {showcaseEvents.map((eventItem) => (
             <div key={eventItem.id} className="event-block">
               <div className="event-header">
                 <div>
+                  <span className="section-kicker">Event picks</span>
                   <h2>{eventItem.name}</h2>
-                  {Number(eventItem.discount_value || 0) > 0 && (
-                    <p className="event-subtitle">
-                      {eventItem.discount_type === 'percent'
-                        ? `${eventItem.discount_value}% off`
-                        : `AED ${eventItem.discount_value} off`}
-                    </p>
-                  )}
+                  <p className="event-subtitle">{formatEventBadge(eventItem)}</p>
                 </div>
                 <div className="event-controls">
                   <button type="button" onClick={() => scrollEventProducts(eventItem.id, -1)} aria-label="Scroll left">
@@ -334,66 +628,100 @@ export default function HomePage() {
                   }
                 }}
               >
-                {(eventItem.products || []).map((product) => (
-                  <div key={product.id} className="event-card">
-                    <div className="event-image">
-                      {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} />
-                      ) : (
-                        <div className="event-image-placeholder" />
-                      )}
-                    </div>
-                    <div className="event-card-body">
-                      <h3>{product.name}</h3>
-                      {Number(product.discount_price || 0) > 0 ? (
-                        <div className="event-product-price">
-                          <span className="price-old">AED {Number(product.price || 0).toFixed(2)}</span>
-                          <span className="price-discount">AED {Number(product.discount_price || 0).toFixed(2)}</span>
-                        </div>
-                      ) : (
-                        <div className="event-product-price">AED {Number(product.price || 0).toFixed(2)}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                {(eventItem.products || []).map((product) => {
+                  const productImage = resolveAssetUrl(apiBaseUrl, product.image_url, product.image_path);
+
+                  return (
+                    <article key={product.id} className="event-card">
+                      <div className="event-image">
+                        {productImage ? (
+                          <img src={productImage} alt={product.name} />
+                        ) : (
+                          <div className="event-image-placeholder" />
+                        )}
+                      </div>
+                      <div className="event-card-body">
+                        <h3>{product.name}</h3>
+                        {Number(product.discount_price || 0) > 0 ? (
+                          <div className="event-product-price">
+                            <span className="price-old">{formatCurrency(product.price)}</span>
+                            <span className="price-discount">{formatCurrency(product.discount_price)}</span>
+                          </div>
+                        ) : (
+                          <div className="event-product-price">{formatCurrency(product.price)}</div>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </div>
           ))}
         </section>
       )}
 
-      <section className="hero">
-        <div className="hero-copy">
-          <span className="hero-tag">MessaraLiving Essentials</span>
-          <h1>Functional furniture with bold accents, built for everyday life.</h1>
-          <p>
-            Discover Scandinavian-inspired comfort with a modern red-and-black signature. Clean lines, smart storage,
-            and a flexible style for any space.
-          </p>
-          <div className="hero-actions">
-            <button type="button" className="primary-btn">Shop the look</button>
-            <button type="button" className="ghost-btn">View catalog</button>
+      {products.length > 0 && (
+        <section id="products" className="section home-products-section">
+          <div className="section-head">
+            <div>
+              <span className="section-kicker">New arrivals</span>
+              <h2>Fresh pieces for every room.</h2>
+            </div>
+            <p>
+              Explore the latest products from the catalog, with live pricing and event discounts directly from the dashboard.
+            </p>
           </div>
-        </div>
-        <div className="hero-card">
-          <div
-            className="hero-image"
-            style={{
-              backgroundImage:
-                'url(https://images.unsplash.com/photo-1758957530781-4ff54e09bee2?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&ixlib=rb-4.1.0&q=60&w=3000)',
-            }}
-          />
-          <div className="hero-card-body">
-            <h3>Weekend Refresh</h3>
-            <p>Layered textiles, pale woods, and adaptable seating.</p>
+          <div className="home-product-grid">
+            {products.map((product) => {
+              const imageUrl = resolveAssetUrl(apiBaseUrl, product.image_url, product.image_path);
+              const productPath = `/categories/${product.category?.slug}/sub-categories/${product.sub_category?.slug}/products/${product.slug}`;
+              const hasDiscount = Number(product.discount_price || 0) > 0;
+
+              return (
+                <Link key={product.id} to={productPath} className="home-product-card">
+                  <div className="home-product-media">
+                    {hasDiscount && <span className="home-product-badge">Sale</span>}
+                    {imageUrl ? <img src={imageUrl} alt={product.name} /> : <div className="home-product-placeholder">M</div>}
+                  </div>
+                  <div className="home-product-copy">
+                    <span className="home-product-category">{product.category?.name || 'Furniture'}</span>
+                    <h3>{product.name}</h3>
+                    <div className="home-product-price">
+                      {hasDiscount && <span className="price-old">{formatCurrency(product.price)}</span>}
+                      <strong className={hasDiscount ? 'price-discount' : ''}>
+                        {formatCurrency(hasDiscount ? product.discount_price : product.price)}
+                      </strong>
+                    </div>
+                    <div className="home-product-card-footer">
+                      <span>{Number(product.stock || 0) > 0 ? 'In stock' : 'Out of stock'}</span>
+                      <strong>View product</strong>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        </div>
-      </section>
+
+          <div className="home-product-pagination">
+            {productLoadError && <p className="home-product-error">{productLoadError}</p>}
+            {hasMoreProducts ? (
+              <button type="button" className="home-load-more" onClick={loadMoreProducts} disabled={loadingMoreProducts}>
+                {loadingMoreProducts ? 'Loading products...' : 'Load more products'}
+              </button>
+            ) : (
+              <span className="home-product-count">Showing all {productPagination.total || products.length} products</span>
+            )}
+          </div>
+        </section>
+      )}
 
       <section id="collections" className="section">
         <div className="section-head">
-          <h2>Curated Collections</h2>
-          <p>Mix-and-match essentials built for modern apartments.</p>
+          <div>
+            <span className="section-kicker">Collections</span>
+            <h2>Curated pieces for modern interiors.</h2>
+          </div>
+          <p>Editorial-looking groups that help the homepage feel richer while the real catalog keeps growing underneath.</p>
         </div>
         <div className="collection-grid">
           {collections.map((item) => (
@@ -411,11 +739,13 @@ export default function HomePage() {
         </div>
       </section>
 
-
       <section id="rooms" className="section rooms">
         <div className="section-head">
-          <h2>Room-by-Room Ideas</h2>
-          <p>Blueprints that balance function and calm.</p>
+          <div>
+            <span className="section-kicker">Room ideas</span>
+            <h2>Design each space with a clearer story.</h2>
+          </div>
+          <p>From living to bedroom zones, give shoppers inspiration before they move deeper into categories and products.</p>
         </div>
         <div className="room-grid">
           {rooms.map((room) => (
@@ -433,16 +763,19 @@ export default function HomePage() {
 
       <section id="promo" className="promo">
         <div>
-          <h2>New arrivals with flexible storage</h2>
-          <p>Slide-in shelves, hidden compartments, and timeless silhouettes.</p>
+          <span className="section-kicker on-dark">MessaraLiving Living</span>
+          <h2>Discover products made for modern everyday living.</h2>
+          <p>Browse the latest catalog pieces, live event prices, and room inspiration in one premium storefront.</p>
         </div>
-        <button type="button" className="primary-btn">Explore arrivals</button>
+        <a href="#products" className="primary-btn promo-btn">
+          Browse products
+        </a>
       </section>
 
       <footer className="home-footer">
         <div>
-          <strong>NordicHouse</strong>
-          <p>Scandinavian-inspired interiors for modern living.</p>
+          <strong>MessaraLiving</strong>
+          <p>Premium furniture, cleaner browsing, and a stronger modern ecommerce presentation.</p>
         </div>
         <div>
           <span>Support</span>

@@ -64,6 +64,18 @@ export async function fetchPublicEvents() {
   return data;
 }
 
+export async function fetchPublicBanners() {
+  const { data } = await api.get('/api/public/banners');
+  return data;
+}
+
+export async function fetchPublicProducts(page = 1, perPage = 8) {
+  const { data } = await api.get('/api/public/products', {
+    params: { page, per_page: perPage },
+  });
+  return data;
+}
+
 export async function fetchPublicCategory(categorySlug) {
   const { data } = await api.get(`/api/public/categories/${categorySlug}`);
   return data;

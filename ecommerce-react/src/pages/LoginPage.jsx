@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import StorefrontHeader from '../components/StorefrontHeader';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -21,7 +23,7 @@ export default function LoginPage() {
 
     try {
       await login(form);
-      navigate('/dashboard');
+      navigate(location.state?.from || '/dashboard');
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Login failed.');
     } finally {
@@ -30,7 +32,9 @@ export default function LoginPage() {
   }
 
   return (
-    <section className="auth-page">
+    <div className="storefront-page">
+      <StorefrontHeader />
+      <section className="auth-page">
       <div className="auth-card">
         <h1>Login</h1>
         <form onSubmit={handleSubmit} className="d-grid gap-3">
@@ -48,12 +52,13 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="mt-3 mb-0">
-          New user? <Link to="/register">Register</Link>
+          New user? <Link to="/register" state={location.state}>Register</Link>
         </p>
         <p className="mb-0">
           Forgot password? <Link to="/forgot-password">Reset here</Link>
         </p>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

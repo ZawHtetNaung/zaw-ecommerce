@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPublicSubCategoryProducts } from '../api/client';
-
-function formatPrice(value) {
-  const numberValue = Number(value || 0);
-  return Number.isFinite(numberValue) ? numberValue.toFixed(2) : '0.00';
-}
+import StorefrontHeader from '../components/StorefrontHeader';
+import StoreProductCard from '../components/StoreProductCard';
 
 export default function PublicSubCategoryProductsPage() {
   const { categorySlug, subCategorySlug } = useParams();
@@ -53,12 +50,8 @@ export default function PublicSubCategoryProductsPage() {
 
   return (
     <div className="catalog-page">
+      <StorefrontHeader />
       <div className="catalog-shell">
-        <div className="catalog-header">
-          <Link to={`/categories/${categorySlug}`} className="catalog-home-link">← Back to Category</Link>
-          <img className="catalog-logo" src="/messaraliving-logo.png" alt="MessaraLiving" />
-        </div>
-
         <div className="catalog-breadcrumbs">
           <Link to="/">Home</Link>
           <span>/</span>
@@ -123,45 +116,7 @@ export default function PublicSubCategoryProductsPage() {
 
               {products.length > 0 ? (
                 <div className="product-grid-public">
-                  {products.map((product) => (
-                    <Link
-                      key={product.id}
-                      to={`/categories/${categorySlug}/sub-categories/${subCategorySlug}/products/${product.slug}`}
-                      className="product-card-public"
-                    >
-                      <div className="product-card-public-media">
-                        {product.image_url ? (
-                          <img src={product.image_url} alt={product.name} />
-                        ) : (
-                          <div className="subcategory-card-placeholder" />
-                        )}
-                        {Number(product.discount_price || 0) > 0 && <span className="product-sale-badge">Sale</span>}
-                      </div>
-                      <div className="product-card-public-body">
-                        <div className="product-card-public-meta">
-                          <span>{product.brand?.name || category?.name || 'MessaraLiving'}</span>
-                          <span>{Number(product.stock || 0) > 0 ? `${product.stock} in stock` : 'Out of stock'}</span>
-                        </div>
-                        <h3>{product.name}</h3>
-                        <p>
-                          {product.description || `Modern ${subCategory?.name?.toLowerCase() || 'product'} styling with a clean, easy-to-understand presentation.`}
-                        </p>
-                        <div className="product-card-public-footer">
-                          <div className="event-product-price">
-                            {Number(product.discount_price || 0) > 0 ? (
-                              <>
-                                <span className="price-old">AED {formatPrice(product.price)}</span>
-                                <span className="price-discount">AED {formatPrice(product.discount_price)}</span>
-                              </>
-                            ) : (
-                              <span className="product-price-plain">AED {formatPrice(product.price)}</span>
-                            )}
-                          </div>
-                          <span className="product-card-public-arrow">→</span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                  {products.map((product) => <StoreProductCard key={product.id} product={product} />)}
                 </div>
               ) : (
                 <div className="catalog-empty-panel">

@@ -10,7 +10,10 @@ import LoginPage from './pages/LoginPage';
 import MeasurementsPage from './pages/MeasurementsPage';
 import BrandsPage from './pages/BrandsPage';
 import BannersPage from './pages/BannersPage';
+import CartPage from './pages/CartPage';
 import EventsPage from './pages/EventsPage';
+import FavouritesPage from './pages/FavouritesPage';
+import NewsPage from './pages/NewsPage';
 import ProductCreatePage from './pages/ProductCreatePage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import ProductEditPage from './pages/ProductEditPage';
@@ -18,8 +21,11 @@ import ProductListPage from './pages/ProductListPage';
 import PublicCategoryPage from './pages/PublicCategoryPage';
 import PublicProductDetailPage from './pages/PublicProductDetailPage';
 import PublicSubCategoryProductsPage from './pages/PublicSubCategoryProductsPage';
+import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import SearchResultsPage from './pages/SearchResultsPage';
+import ServicesPage from './pages/ServicesPage';
 import SubCategoriesPage from './pages/SubCategoriesPage';
 import UsersPage from './pages/UsersPage';
 
@@ -38,6 +44,12 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/search" element={<SearchResultsPage />} />
+      <Route path="/services" element={<ServicesPage />} />
+      <Route path="/news" element={<NewsPage />} />
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+      <Route path="/favourites" element={<ProtectedRoute><FavouritesPage /></ProtectedRoute>} />
 
       <Route
         path="/dashboard"

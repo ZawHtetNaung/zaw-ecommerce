@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { resetPassword } from '../api/client';
+import StorefrontHeader from '../components/StorefrontHeader';
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -40,7 +41,9 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <section className="auth-page">
+    <div className="storefront-page">
+      <StorefrontHeader />
+      <section className="auth-page">
       <div className="auth-card">
         <h1>Reset Password</h1>
         <form onSubmit={handleSubmit} className="d-grid gap-3">
@@ -74,6 +77,7 @@ export default function ResetPasswordPage() {
           </button>
         </form>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

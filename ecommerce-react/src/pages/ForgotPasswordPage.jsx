@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { forgotPassword } from '../api/client';
+import StorefrontHeader from '../components/StorefrontHeader';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -24,7 +25,9 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <section className="auth-page">
+    <div className="storefront-page">
+      <StorefrontHeader />
+      <section className="auth-page">
       <div className="auth-card">
         <h1>Forgot Password</h1>
         <form onSubmit={handleSubmit} className="d-grid gap-3">
@@ -46,6 +49,7 @@ export default function ForgotPasswordPage() {
           </button>
         </form>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

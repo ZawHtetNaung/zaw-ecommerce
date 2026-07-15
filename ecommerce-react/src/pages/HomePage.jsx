@@ -1,20 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import CIcon from '@coreui/icons-react';
-import {
-  cibFacebookF,
-  cibInstagram,
-  cibLinkedinIn,
-  cibTiktok,
-  cibWhatsapp,
-  cibYoutube,
-  cilCart,
-  cilGlobeAlt,
-  cilHeart,
-  cilSearch,
-  cilTruck,
-} from '@coreui/icons';
 import { fetchPublicBanners, fetchPublicCategories, fetchPublicEvents, fetchPublicProducts } from '../api/client';
+import StorefrontHeader from '../components/StorefrontHeader';
 import { useAuth } from '../context/AuthContext';
 
 const rooms = [
@@ -184,7 +171,7 @@ function getBannerButtonStyle(banner) {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { login, register, isAuthenticated, user } = useAuth();
+  const { login, register } = useAuth();
   const [categories, setCategories] = useState([]);
   const [events, setEvents] = useState([]);
   const [banners, setBanners] = useState([]);
@@ -389,98 +376,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page premium-home">
-      <div className="top-bar">
-        <div className="top-bar-col">
-          <button type="button" className="lang-switch">
-            <CIcon icon={cilGlobeAlt} />
-            <span>AE | English</span>
-          </button>
-        </div>
-        <div className="top-bar-col center">
-          <a href="#delivery" className="delivery-link">
-            <CIcon icon={cilTruck} />
-            <span>Delivery Free</span>
-          </a>
-        </div>
-        <div className="top-bar-col end">
-          <div className="top-links">
-            <a href="#contact">Contact Us</a>
-            <a href="#faqs">FAQs</a>
-            <a href="#about">About Us</a>
-          </div>
-        </div>
-      </div>
-
-      <header className="home-nav">
-        <div className="home-brand">
-          <img className="home-logo" src="/messaraliving-logo.png" alt="MessaraLiving" />
-        </div>
-
-        <div className="home-social">
-          <a className="social-dot" href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook">
-            <CIcon icon={cibFacebookF} />
-          </a>
-          <a className="social-dot" href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram">
-            <CIcon icon={cibInstagram} />
-          </a>
-          <a className="social-dot" href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube">
-            <CIcon icon={cibYoutube} />
-          </a>
-          <a className="social-dot" href="https://linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn">
-            <CIcon icon={cibLinkedinIn} />
-          </a>
-          <a className="social-dot" href="https://whatsapp.com" target="_blank" rel="noreferrer" aria-label="WhatsApp">
-            <CIcon icon={cibWhatsapp} />
-          </a>
-          <a className="social-dot" href="https://tiktok.com" target="_blank" rel="noreferrer" aria-label="TikTok">
-            <CIcon icon={cibTiktok} />
-          </a>
-        </div>
-
-        <div className="home-search center-search">
-          <div className="home-search-field">
-            <CIcon icon={cilSearch} className="search-icon" />
-            <input type="text" placeholder="what are you looking for?" />
-          </div>
-        </div>
-
-        <div className="home-links">
-          <a href="#services">Services</a>
-          <a href="#news">News</a>
-        </div>
-
-        <div className="home-auth">
-          {isAuthenticated ? (
-            <>
-              <span className="auth-user">{user?.name || 'My account'}</span>
-              <Link className="dashboard-pill" to={dashboardPath}>
-                Dashboard
-              </Link>
-            </>
-          ) : (
-            <>
-              <button type="button" className="auth-link" onClick={openLogin}>
-                Login
-              </button>
-              <button type="button" className="auth-link" onClick={openRegister}>
-                Register
-              </button>
-            </>
-          )}
-        </div>
-
-        <div className="home-icons">
-          <Link to={dashboardPath} title="Transport">
-            <CIcon icon={cilTruck} />
-          </Link>
-          <Link to={dashboardPath} title="Wishlist">
-            <CIcon icon={cilHeart} />
-          </Link>
-          <Link to={dashboardPath} title="Cart">
-            <CIcon icon={cilCart} />
-          </Link>
-        </div>
-      </header>
+      <StorefrontHeader onLogin={openLogin} onRegister={openRegister} />
 
       {sortedCategories.length > 0 && (
         <div className="category-nav">

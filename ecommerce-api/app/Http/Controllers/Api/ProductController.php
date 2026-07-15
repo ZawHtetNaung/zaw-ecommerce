@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\SubCategory;
@@ -17,39 +18,97 @@ class ProductController extends Controller
 {
     public function publicIndex(Request $request)
     {
-        $perPage = min(max($request->integer('per_page', 8), 4), 24);
+        $perPage = min(max($request->integer('per_page', 8), 4), 32);
+        $search = trim((string) $request->query('q', ''));
+        $sort = (string) $request->query('sort', 'newest');
 
-        return response()->json(
-            Product::query()
-                ->select([
-                    'id',
-                    'category_id',
-                    'sub_category_id',
-                    'brand_id',
-                    'event_id',
-                    'name',
-                    'slug',
-                    'price',
-                    'discount_price',
-                    'stock',
-                    'description',
-                    'image_path',
-                    'is_active',
-                    'created_at',
-                ])
+        $products = Product::query()
+            ->select([
+                'id',
+                'category_id',
+                'sub_category_id',
+                'brand_id',
+                'event_id',
+                'name',
+                'slug',
+                'sku',
+                'price',
+                'discount_price',
+                'stock',
+                'description',
+                'short_description',
+                'image_path',
+                'is_active',
+                'created_at',
+            ])
+            ->where('is_active', true)
+            ->whereHas('category', fn ($query) => $query->where('is_active', true))
+            ->whereHas('subCategory', fn ($query) => $query->where('is_active', true))
+            ->when($search !== '', function ($query) use ($search): void {
+                $like = '%'.$search.'%';
+                $query->where(function ($searchQuery) use ($like): void {
+                    $searchQuery
+                        ->where('name', 'like', $like)
+                        ->orWhere('sku', 'like', $like)
+                        ->orWhere('description', 'like', $like)
+                        ->orWhere('short_description', 'like', $like)
+                        ->orWhereHas('brand', fn ($brandQuery) => $brandQuery->where('name', 'like', $like))
+                        ->orWhereHas('category', fn ($categoryQuery) => $categoryQuery->where('name', 'like', $like))
+                        ->orWhereHas('subCategory', fn ($subCategoryQuery) => $subCategoryQuery->where('name', 'like', $like));
+                });
+            })
+            ->when($request->filled('category_id'), fn ($query) => $query->where('category_id', $request->integer('category_id')))
+            ->when($request->filled('brand_id'), fn ($query) => $query->where('brand_id', $request->integer('brand_id')))
+            ->when($request->filled('min_price'), fn ($query) => $query->whereRaw(
+                'COALESCE(NULLIF(discount_price, 0), price) >= ?',
+                [(float) $request->query('min_price')]
+            ))
+            ->when($request->filled('max_price'), fn ($query) => $query->whereRaw(
+                'COALESCE(NULLIF(discount_price, 0), price) <= ?',
+                [(float) $request->query('max_price')]
+            ))
+            ->with([
+                'category:id,name,slug',
+                'subCategory:id,category_id,name,slug',
+                'brand:id,name,image_path,is_active',
+                'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
+                'images',
+            ]);
+
+        match ($sort) {
+            'price_asc' => $products->orderByRaw('COALESCE(NULLIF(discount_price, 0), price) asc'),
+            'price_desc' => $products->orderByRaw('COALESCE(NULLIF(discount_price, 0), price) desc'),
+            'name_asc' => $products->orderBy('name'),
+            default => $products->orderByDesc('id'),
+        };
+
+        return response()->json($products->paginate($perPage)->withQueryString());
+    }
+
+    public function publicFilters()
+    {
+        $activeProducts = fn ($query) => $query->where('is_active', true);
+
+        return response()->json([
+            'categories' => Category::query()
+                ->select(['id', 'name', 'slug'])
                 ->where('is_active', true)
-                ->whereHas('category', fn ($query) => $query->where('is_active', true))
-                ->whereHas('subCategory', fn ($query) => $query->where('is_active', true))
-                ->with([
-                    'category:id,name,slug',
-                    'subCategory:id,category_id,name,slug',
-                    'brand:id,name,image_path,is_active',
-                    'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
-                    'images',
-                ])
-                ->orderByDesc('id')
-                ->paginate($perPage)
-        );
+                ->whereHas('products', $activeProducts)
+                ->withCount(['products as products_count' => $activeProducts])
+                ->orderBy('id')
+                ->get(),
+            'brands' => Brand::query()
+                ->select(['id', 'name'])
+                ->where('is_active', true)
+                ->whereHas('products', $activeProducts)
+                ->withCount(['products as products_count' => $activeProducts])
+                ->orderBy('name')
+                ->get(),
+            'price' => [
+                'min' => (float) Product::query()->where('is_active', true)->min('price'),
+                'max' => (float) Product::query()->where('is_active', true)->max('price'),
+            ],
+        ]);
     }
 
     public function publicIndexBySubCategory(string $categorySlug, string $subCategorySlug)

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPublicCategory } from '../api/client';
+import StorefrontHeader from '../components/StorefrontHeader';
 
 export default function PublicCategoryPage() {
   const { categorySlug } = useParams();
@@ -51,12 +52,8 @@ export default function PublicCategoryPage() {
 
   return (
     <div className="catalog-page">
+      <StorefrontHeader />
       <div className="catalog-shell">
-        <div className="catalog-header">
-          <Link to="/" className="catalog-home-link">← Back to Home</Link>
-          <img className="catalog-logo" src="/messaraliving-logo.png" alt="MessaraLiving" />
-        </div>
-
         <div className="catalog-breadcrumbs">
           <Link to="/">Home</Link>
           <span>/</span>

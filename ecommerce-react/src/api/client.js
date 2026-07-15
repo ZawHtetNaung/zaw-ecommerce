@@ -69,10 +69,15 @@ export async function fetchPublicBanners() {
   return data;
 }
 
-export async function fetchPublicProducts(page = 1, perPage = 8) {
+export async function fetchPublicProducts(page = 1, perPage = 8, filters = {}) {
   const { data } = await api.get('/api/public/products', {
-    params: { page, per_page: perPage },
+    params: { page, per_page: perPage, ...filters },
   });
+  return data;
+}
+
+export async function fetchPublicProductFilters() {
+  const { data } = await api.get('/api/public/product-filters');
   return data;
 }
 
@@ -92,6 +97,56 @@ export async function fetchPublicProduct(categorySlug, subCategorySlug, productS
     return data;
   }
   const { data } = await api.get(`/api/public/categories/${categorySlug}/sub-categories/${subCategorySlug}/products/${productSlug}`);
+  return data;
+}
+
+export async function fetchProfile() {
+  const { data } = await api.get('/api/profile');
+  return data;
+}
+
+export async function updateProfile(payload) {
+  const { data } = await api.put('/api/profile', payload);
+  return data;
+}
+
+export async function fetchCart() {
+  const { data } = await api.get('/api/cart');
+  return data;
+}
+
+export async function addCartItem(productId, quantity = 1) {
+  const { data } = await api.post('/api/cart', { product_id: productId, quantity });
+  return data;
+}
+
+export async function updateCartItem(cartItemId, quantity) {
+  const { data } = await api.patch(`/api/cart/${cartItemId}`, { quantity });
+  return data;
+}
+
+export async function removeCartItem(cartItemId) {
+  const { data } = await api.delete(`/api/cart/${cartItemId}`);
+  return data;
+}
+
+export async function clearCart() {
+  const { data } = await api.delete('/api/cart');
+  return data;
+}
+
+export async function fetchFavorites() {
+  const { data } = await api.get('/api/favorites');
+  return data;
+}
+
+export async function addFavorite(productId) {
+  const { data } = await api.post('/api/favorites', { product_id: productId });
+  return data;
+}
+
+export async function removeFavorite(productId) {
+  const { data } = await api.delete(`/api/favorites/${productId}`);
   return data;
 }
 

@@ -83,6 +83,16 @@ class Product extends Model
         return $this->belongsToMany(Measurement::class)->withPivot(['value', 'unit']);
     }
 
+    public function cartItems(): HasMany
+    {
+        return $this->hasMany(CartItem::class);
+    }
+
+    public function favoritedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'favorites')->withTimestamps();
+    }
+
     public function getImageUrlAttribute(): ?string
     {
         $firstImage = $this->relationLoaded('images')

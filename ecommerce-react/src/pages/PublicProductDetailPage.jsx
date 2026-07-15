@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchPublicProduct } from '../api/client';
+import StorefrontHeader from '../components/StorefrontHeader';
+import { useAuth } from '../context/AuthContext';
+import { useStore } from '../context/StoreContext';
 
 function formatPrice(value) {
   const numberValue = Number(value || 0);
@@ -9,10 +12,17 @@ function formatPrice(value) {
 
 export default function PublicProductDetailPage() {
   const { categorySlug, subCategorySlug, productSlug } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
+  const { addToCart, addToFavorites, removeFromFavorites, isFavorite } = useStore();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [actionBusy, setActionBusy] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -86,14 +96,28 @@ export default function PublicProductDetailPage() {
     setActiveIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   }
 
+  async function runProductAction(type, callback) {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `${location.pathname}${location.search}` } });
+      return;
+    }
+
+    setActionBusy(type);
+    setActionMessage('');
+    try {
+      await callback();
+      setActionMessage(type === 'cart' ? `${quantity} item${quantity > 1 ? 's' : ''} added to your cart.` : 'Your favourites have been updated.');
+    } catch (requestError) {
+      setActionMessage(requestError.response?.data?.message || 'Unable to update this product right now.');
+    } finally {
+      setActionBusy('');
+    }
+  }
+
   return (
     <div className="catalog-page">
+      <StorefrontHeader />
       <div className="catalog-shell product-detail-shell">
-        <div className="catalog-header">
-          <Link to={`/categories/${resolvedCategorySlug}/sub-categories/${resolvedSubCategorySlug}`} className="catalog-home-link">← Back to Products</Link>
-          <img className="catalog-logo" src="/messaraliving-logo.png" alt="MessaraLiving" />
-        </div>
-
         <div className="catalog-breadcrumbs">
           <Link to="/">Home</Link>
           <span>/</span>
@@ -162,6 +186,34 @@ export default function PublicProductDetailPage() {
                     <span className="public-price-highlight">AED {formatPrice(product.price)}</span>
                   )}
                 </div>
+
+                <div className="public-purchase-panel">
+                  <div className="public-quantity-control">
+                    <span>Quantity</span>
+                    <div>
+                      <button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))} disabled={quantity <= 1}>−</button>
+                      <strong>{quantity}</strong>
+                      <button type="button" onClick={() => setQuantity((current) => Math.min(Number(product.stock || 1), current + 1))} disabled={quantity >= Number(product.stock || 0)}>+</button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="public-add-cart-button"
+                    disabled={actionBusy === 'cart' || Number(product.stock || 0) < 1}
+                    onClick={() => runProductAction('cart', () => addToCart(product.id, quantity))}
+                  >
+                    {actionBusy === 'cart' ? 'Adding...' : Number(product.stock || 0) > 0 ? 'Add to cart' : 'Out of stock'}
+                  </button>
+                  <button
+                    type="button"
+                    className={`public-favourite-button ${isFavorite(product.id) ? 'is-active' : ''}`}
+                    disabled={actionBusy === 'favorite'}
+                    onClick={() => runProductAction('favorite', () => isFavorite(product.id) ? removeFromFavorites(product.id) : addToFavorites(product.id))}
+                  >
+                    {isFavorite(product.id) ? '♥ Saved' : '♡ Save'}
+                  </button>
+                </div>
+                {actionMessage && <div className="public-product-action-message">{actionMessage}</div>}
 
                 <div className="public-product-meta-grid">
                   <div className="public-product-meta-card">

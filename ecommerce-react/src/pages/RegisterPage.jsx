@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import StorefrontHeader from '../components/StorefrontHeader';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register } = useAuth();
   const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '' });
   const [error, setError] = useState('');
@@ -21,7 +23,7 @@ export default function RegisterPage() {
 
     try {
       await register(form);
-      navigate('/dashboard');
+      navigate(location.state?.from || '/dashboard');
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Unable to register.');
     } finally {
@@ -30,7 +32,9 @@ export default function RegisterPage() {
   }
 
   return (
-    <section className="auth-page">
+    <div className="storefront-page">
+      <StorefrontHeader />
+      <section className="auth-page">
       <div className="auth-card">
         <h1>Create account</h1>
         <form onSubmit={handleSubmit} className="d-grid gap-3">
@@ -63,9 +67,10 @@ export default function RegisterPage() {
           </button>
         </form>
         <p className="mt-3 mb-0">
-          Already have an account? <Link to="/login">Login</Link>
+          Already have an account? <Link to="/login" state={location.state}>Login</Link>
         </p>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

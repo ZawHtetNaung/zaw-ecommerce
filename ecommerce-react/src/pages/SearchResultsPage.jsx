@@ -9,7 +9,13 @@ const defaultFilters = { category_id: '', brand_id: '', min_price: '', max_price
 export default function SearchResultsPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q')?.trim() || '';
-  const [filters, setFilters] = useState(defaultFilters);
+  const urlBrandId = searchParams.get('brand_id') || '';
+  const urlCategoryId = searchParams.get('category_id') || '';
+  const [filters, setFilters] = useState(() => ({
+    ...defaultFilters,
+    brand_id: urlBrandId,
+    category_id: urlCategoryId,
+  }));
   const [filterOptions, setFilterOptions] = useState({ categories: [], brands: [], price: {} });
   const [products, setProducts] = useState([]);
   const [pagination, setPagination] = useState({ currentPage: 1, lastPage: 1, total: 0 });
@@ -22,6 +28,13 @@ export default function SearchResultsPage() {
       .then(setFilterOptions)
       .catch(() => setFilterOptions({ categories: [], brands: [], price: {} }));
   }, []);
+
+  useEffect(() => {
+    setFilters((current) => {
+      if (current.brand_id === urlBrandId && current.category_id === urlCategoryId) return current;
+      return { ...current, brand_id: urlBrandId, category_id: urlCategoryId };
+    });
+  }, [urlBrandId, urlCategoryId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,6 +70,10 @@ export default function SearchResultsPage() {
     () => Object.entries(filters).filter(([key, value]) => key !== 'sort' && value !== '').length,
     [filters]
   );
+  const selectedBrand = useMemo(
+    () => (filterOptions.brands || []).find((brand) => String(brand.id) === String(filters.brand_id)),
+    [filterOptions.brands, filters.brand_id]
+  );
 
   function updateFilter(event) {
     const { name, value } = event.target;
@@ -90,9 +107,13 @@ export default function SearchResultsPage() {
       <main className="store-page-shell search-page-shell">
         <section className="store-page-hero compact">
           <div>
-            <span className="store-eyebrow">Curated search</span>
-            <h1>{query ? `Results for “${query}”` : 'Explore all products'}</h1>
-            <p>Refine by category, brand, or price while keeping every matching product in one clear place.</p>
+            <span className="store-eyebrow">{selectedBrand ? 'Brand collection' : 'Curated search'}</span>
+            <h1>{query ? `Results for “${query}”` : selectedBrand ? selectedBrand.name : 'Explore all products'}</h1>
+            <p>
+              {selectedBrand
+                ? `Explore all available products from ${selectedBrand.name}.`
+                : 'Refine by category, brand, or price while keeping every matching product in one clear place.'}
+            </p>
           </div>
           <div className="search-result-total">
             <strong>{pagination.total}</strong>

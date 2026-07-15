@@ -11,6 +11,21 @@ use Illuminate\Validation\Rule;
 
 class BrandController extends Controller
 {
+    public function publicIndex()
+    {
+        $activeProducts = fn ($query) => $query->where('is_active', true);
+
+        return response()->json(
+            Brand::query()
+                ->select(['id', 'name', 'slug', 'image_path', 'source_url', 'is_active'])
+                ->where('is_active', true)
+                ->whereHas('products', $activeProducts)
+                ->withCount(['products as products_count' => $activeProducts])
+                ->orderBy('id')
+                ->get()
+        );
+    }
+
     public function index()
     {
         return response()->json(

@@ -59,6 +59,11 @@ export async function fetchPublicCategories() {
   return data;
 }
 
+export async function fetchPublicSubCategories() {
+  const { data } = await api.get('/api/public/sub-categories');
+  return data;
+}
+
 export async function fetchPublicEvents() {
   const { data } = await api.get('/api/public/events');
   return data;
@@ -66,6 +71,11 @@ export async function fetchPublicEvents() {
 
 export async function fetchPublicBanners() {
   const { data } = await api.get('/api/public/banners');
+  return data;
+}
+
+export async function fetchPublicBrands() {
+  const { data } = await api.get('/api/public/brands');
   return data;
 }
 

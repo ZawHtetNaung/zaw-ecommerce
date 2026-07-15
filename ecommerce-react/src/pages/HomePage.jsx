@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchPublicBanners, fetchPublicCategories, fetchPublicEvents, fetchPublicProducts } from '../api/client';
+import {
+  fetchPublicBanners,
+  fetchPublicBrands,
+  fetchPublicCategories,
+  fetchPublicEvents,
+  fetchPublicProducts,
+  fetchPublicSubCategories,
+} from '../api/client';
 import StorefrontHeader from '../components/StorefrontHeader';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,40 +35,13 @@ const rooms = [
   },
 ];
 
-const collections = [
-  {
-    title: 'Statement Sofas',
-    description: 'Deep seats, cleaner lines, and fabrics that soften the whole room.',
-    image:
-      'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=1400&q=80',
-  },
-  {
-    title: 'Editorial Storage',
-    description: 'Closed cabinets and open display units built for a polished everyday look.',
-    image:
-      'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=80',
-  },
-  {
-    title: 'Dining Essentials',
-    description: 'Tables, sideboards, and seating for layouts that feel intentional.',
-    image:
-      'https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1400&q=80',
-  },
-  {
-    title: 'Workspace Corners',
-    description: 'Compact desks and ergonomic shapes for modern work-from-home settings.',
-    image:
-      'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1400&q=80',
-  },
-];
-
 const fallbackBanners = [
   {
     id: 'fallback-1',
     title: 'Made for homes that want clean lines and a stronger identity.',
     subtitle: 'Discover living, dining, bedroom, and storage pieces curated for a premium modern lifestyle.',
-    button_text: 'Shop collections',
-    button_link: '#collections',
+    button_text: 'Shop new arrivals',
+    button_link: '#products',
     button_pos_x: 22,
     button_pos_y: 78,
     button_style: 'solid',
@@ -109,6 +89,25 @@ const fallbackBanners = [
   },
 ];
 
+const fallbackLogoUrl = '/messaraliving-logo.png';
+const homeProductPageSize = 8;
+const homeProductLimit = 100;
+const minimumProductLoadingTime = 650;
+const homeProductSortOptions = [
+  { value: 'popular', label: 'Popular' },
+  { value: 'discount', label: 'Discount' },
+  { value: 'newest', label: 'Latest' },
+  { value: 'price_asc', label: 'Price: Low to High' },
+];
+
+function applyMainLogoFallback(event) {
+  const image = event.currentTarget;
+  if (image.dataset.fallbackApplied === 'true') return;
+  image.dataset.fallbackApplied = 'true';
+  image.classList.add('is-fallback-logo');
+  image.src = fallbackLogoUrl;
+}
+
 function resolveAssetUrl(apiBaseUrl, imageUrl, imagePath) {
   if (imageUrl) {
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
@@ -153,6 +152,7 @@ function getBannerButtonStyle(banner) {
   const textColor = banner?.button_text_color || '#ffffff';
 
   return {
+    '--banner-button-text-color': textColor,
     width: `${Math.max(Number(banner?.button_width || 160), 100)}px`,
     height: `${Math.max(Number(banner?.button_height || 44), 38)}px`,
     borderRadius: `${Math.max(Number(banner?.button_radius ?? 24), 0)}px`,
@@ -175,13 +175,22 @@ export default function HomePage() {
   const [categories, setCategories] = useState([]);
   const [events, setEvents] = useState([]);
   const [banners, setBanners] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [productPagination, setProductPagination] = useState({ currentPage: 1, lastPage: 1, total: 0 });
+  const [productSort, setProductSort] = useState('newest');
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
   const [productLoadError, setProductLoadError] = useState('');
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const categoryTrackRef = useRef(null);
+  const brandTrackRef = useRef(null);
+  const brandSliderPausedRef = useRef(false);
+  const subCategoryTrackRef = useRef(null);
+  const subCategorySliderPausedRef = useRef(false);
   const eventTrackRefs = useRef({});
+  const productLoadMoreRef = useRef(null);
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
   const [authModal, setAuthModal] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
@@ -195,16 +204,20 @@ export default function HomePage() {
   useEffect(() => {
     async function loadHomeData() {
       try {
-        const [categoriesData, eventsData, bannersData, productsData] = await Promise.all([
+        const [categoriesData, eventsData, bannersData, brandsData, subCategoriesData, productsData] = await Promise.all([
           fetchPublicCategories(),
           fetchPublicEvents(),
           fetchPublicBanners(),
-          fetchPublicProducts(1, 8),
+          fetchPublicBrands(),
+          fetchPublicSubCategories(),
+          fetchPublicProducts(1, homeProductPageSize, { sort: 'newest', offset: 0 }),
         ]);
 
         setCategories(Array.isArray(categoriesData) ? categoriesData : []);
         setEvents(Array.isArray(eventsData) ? eventsData : []);
         setBanners(Array.isArray(bannersData) ? bannersData : []);
+        setBrands(Array.isArray(brandsData) ? brandsData : []);
+        setSubCategories(Array.isArray(subCategoriesData) ? subCategoriesData : []);
         setProducts(Array.isArray(productsData?.data) ? productsData.data : []);
         setProductPagination({
           currentPage: Number(productsData?.current_page || 1),
@@ -215,7 +228,12 @@ export default function HomePage() {
         setCategories([]);
         setEvents([]);
         setBanners([]);
+        setBrands([]);
+        setSubCategories([]);
         setProducts([]);
+        setProductLoadError('Unable to load products. Please try again.');
+      } finally {
+        setLoadingProducts(false);
       }
     }
 
@@ -229,6 +247,18 @@ export default function HomePage() {
   const showcaseEvents = useMemo(() => {
     return events.filter((eventItem) => Array.isArray(eventItem?.products) && eventItem.products.length > 0);
   }, [events]);
+
+  const displayBrands = useMemo(() => {
+    return [...brands]
+      .filter((brand) => brand?.is_active ?? true)
+      .sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0));
+  }, [brands]);
+
+  const displaySubCategories = useMemo(() => {
+    return [...subCategories]
+      .filter((subCategory) => (subCategory?.is_active ?? true) && subCategory?.category?.slug)
+      .sort((a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0));
+  }, [subCategories]);
 
   const displayBanners = useMemo(() => {
     const liveBanners = [...banners]
@@ -260,6 +290,26 @@ export default function HomePage() {
     return () => window.clearInterval(intervalId);
   }, [displayBanners.length]);
 
+  useEffect(() => {
+    if (displayBrands.length < 2) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      if (!brandSliderPausedRef.current) scrollBrands(1);
+    }, 3200);
+
+    return () => window.clearInterval(intervalId);
+  }, [displayBrands.length]);
+
+  useEffect(() => {
+    if (displaySubCategories.length < 2) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      if (!subCategorySliderPausedRef.current) scrollSubCategories(1);
+    }, 3800);
+
+    return () => window.clearInterval(intervalId);
+  }, [displaySubCategories.length]);
+
   const activeBanner = displayBanners[activeBannerIndex] ?? displayBanners[0] ?? null;
   const activeBannerImage = activeBanner
     ? resolveAssetUrl(apiBaseUrl, activeBanner.image_url, activeBanner.image_path)
@@ -269,8 +319,24 @@ export default function HomePage() {
     left: `${Number(activeBanner?.button_pos_x ?? 22)}%`,
     top: `${Number(activeBanner?.button_pos_y ?? 78)}%`,
   };
-  const bannerLink = activeBanner?.button_link?.trim() || '#collections';
-  const hasMoreProducts = productPagination.currentPage < productPagination.lastPage;
+  const bannerLink = activeBanner?.button_link?.trim() || '#products';
+  const hasMoreProducts =
+    products.length < Math.min(productPagination.total, homeProductLimit);
+
+  useEffect(() => {
+    const sentinel = productLoadMoreRef.current;
+    if (!sentinel || !hasMoreProducts || loadingProducts || loadingMoreProducts || productLoadError) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) loadMoreProducts();
+      },
+      { rootMargin: '0px', threshold: 0.2 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreProducts, loadingProducts, loadingMoreProducts, productLoadError, productPagination.currentPage, products.length]);
 
   function scrollEventProducts(eventId, direction) {
     const ref = eventTrackRefs.current[eventId];
@@ -283,6 +349,54 @@ export default function HomePage() {
     categoryTrackRef.current.scrollBy({ left: direction * 280, behavior: 'smooth' });
   }
 
+  function scrollBrands(direction) {
+    const track = brandTrackRef.current;
+    const firstCard = track?.querySelector('.home-brand-logo-card');
+    if (!track || !firstCard) return;
+
+    const trackStyle = window.getComputedStyle(track);
+    const gap = Number.parseFloat(trackStyle.columnGap || trackStyle.gap || '0');
+    const step = firstCard.getBoundingClientRect().width + gap;
+    const maxScroll = Math.max(track.scrollWidth - track.clientWidth, 0);
+    if (maxScroll < 2) return;
+
+    if (direction > 0 && track.scrollLeft >= maxScroll - step / 2) {
+      track.scrollTo({ left: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (direction < 0 && track.scrollLeft <= step / 2) {
+      track.scrollTo({ left: maxScroll, behavior: 'smooth' });
+      return;
+    }
+
+    track.scrollBy({ left: direction * step, behavior: 'smooth' });
+  }
+
+  function scrollSubCategories(direction) {
+    const track = subCategoryTrackRef.current;
+    const firstCard = track?.querySelector('.home-subcategory-card');
+    if (!track || !firstCard) return;
+
+    const trackStyle = window.getComputedStyle(track);
+    const gap = Number.parseFloat(trackStyle.columnGap || trackStyle.gap || '0');
+    const step = firstCard.getBoundingClientRect().width + gap;
+    const maxScroll = Math.max(track.scrollWidth - track.clientWidth, 0);
+    if (maxScroll < 2) return;
+
+    if (direction > 0 && track.scrollLeft >= maxScroll - step / 2) {
+      track.scrollTo({ left: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (direction < 0 && track.scrollLeft <= step / 2) {
+      track.scrollTo({ left: maxScroll, behavior: 'smooth' });
+      return;
+    }
+
+    track.scrollBy({ left: direction * step, behavior: 'smooth' });
+  }
+
   function showPreviousBanner() {
     setActiveBannerIndex((current) => (current - 1 + displayBanners.length) % displayBanners.length);
   }
@@ -292,29 +406,60 @@ export default function HomePage() {
   }
 
   async function loadMoreProducts() {
-    if (loadingMoreProducts || !hasMoreProducts) return;
+    if (loadingProducts || loadingMoreProducts || !hasMoreProducts || products.length >= homeProductLimit) return;
 
     setLoadingMoreProducts(true);
     setProductLoadError('');
 
     try {
-      const nextPage = productPagination.currentPage + 1;
-      const productsData = await fetchPublicProducts(nextPage, 8);
+      const [productsData] = await Promise.all([
+        fetchPublicProducts(1, homeProductPageSize, { sort: productSort, offset: products.length }),
+        new Promise((resolve) => window.setTimeout(resolve, minimumProductLoadingTime)),
+      ]);
       const nextProducts = Array.isArray(productsData?.data) ? productsData.data : [];
 
       setProducts((currentProducts) => {
         const existingIds = new Set(currentProducts.map((product) => product.id));
-        return [...currentProducts, ...nextProducts.filter((product) => !existingIds.has(product.id))];
+        return [...currentProducts, ...nextProducts.filter((product) => !existingIds.has(product.id))].slice(
+          0,
+          homeProductLimit
+        );
       });
       setProductPagination({
-        currentPage: Number(productsData?.current_page || nextPage),
-        lastPage: Number(productsData?.last_page || nextPage),
+        currentPage: Number(productsData?.current_page || 1),
+        lastPage: Number(productsData?.last_page || 1),
         total: Number(productsData?.total || products.length + nextProducts.length),
       });
     } catch (requestError) {
       setProductLoadError(requestError.response?.data?.message || 'Unable to load more products.');
     } finally {
       setLoadingMoreProducts(false);
+    }
+  }
+
+  async function changeProductSort(nextSort) {
+    if (nextSort === productSort || loadingProducts || loadingMoreProducts) return;
+
+    setProductSort(nextSort);
+    setLoadingProducts(true);
+    setProductLoadError('');
+
+    try {
+      const productsData = await fetchPublicProducts(1, homeProductPageSize, { sort: nextSort, offset: 0 });
+      const nextProducts = Array.isArray(productsData?.data) ? productsData.data : [];
+
+      setProducts(nextProducts.slice(0, homeProductLimit));
+      setProductPagination({
+        currentPage: Number(productsData?.current_page || 1),
+        lastPage: Number(productsData?.last_page || 1),
+        total: Number(productsData?.total || nextProducts.length),
+      });
+    } catch (requestError) {
+      setProducts([]);
+      setProductPagination({ currentPage: 1, lastPage: 1, total: 0 });
+      setProductLoadError(requestError.response?.data?.message || 'Unable to load products. Please try again.');
+    } finally {
+      setLoadingProducts(false);
     }
   }
 
@@ -497,6 +642,112 @@ export default function HomePage() {
 
       </section>
 
+      {displayBrands.length > 0 && (
+        <section
+          className="home-brand-showcase"
+          aria-labelledby="home-brand-showcase-title"
+          onMouseEnter={() => { brandSliderPausedRef.current = true; }}
+          onMouseLeave={() => { brandSliderPausedRef.current = false; }}
+          onFocusCapture={() => { brandSliderPausedRef.current = true; }}
+          onBlurCapture={() => { brandSliderPausedRef.current = false; }}
+        >
+          <div className="home-brand-showcase-head">
+            <div>
+              <span>Shop by brand</span>
+              <h2 id="home-brand-showcase-title">Design names, all in one place.</h2>
+            </div>
+            {displayBrands.length > 1 && (
+              <div className="home-brand-showcase-controls">
+                <button type="button" onClick={() => scrollBrands(-1)} aria-label="Previous brands">‹</button>
+                <button type="button" onClick={() => scrollBrands(1)} aria-label="Next brands">›</button>
+              </div>
+            )}
+          </div>
+
+          <div className="home-brand-logo-track" ref={brandTrackRef}>
+            {displayBrands.map((brand) => {
+              const logoUrl = resolveAssetUrl(apiBaseUrl, brand.image_url, brand.image_path);
+
+              return (
+                <Link
+                  key={brand.id}
+                  to={`/search?brand_id=${encodeURIComponent(brand.id)}`}
+                  className="home-brand-logo-card"
+                  aria-label={`Shop ${brand.name} products`}
+                  title={brand.name}
+                >
+                  <img
+                    src={logoUrl || fallbackLogoUrl}
+                    className={logoUrl ? undefined : 'is-fallback-logo'}
+                    alt={brand.name}
+                    loading="lazy"
+                    onError={applyMainLogoFallback}
+                  />
+                  <span className="home-brand-logo-name">{brand.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {displaySubCategories.length > 0 && (
+        <section
+          className="home-subcategory-showcase"
+          aria-labelledby="home-subcategory-showcase-title"
+          onMouseEnter={() => { subCategorySliderPausedRef.current = true; }}
+          onMouseLeave={() => { subCategorySliderPausedRef.current = false; }}
+          onFocusCapture={() => { subCategorySliderPausedRef.current = true; }}
+          onBlurCapture={() => { subCategorySliderPausedRef.current = false; }}
+        >
+          <div className="home-subcategory-showcase-head">
+            <div>
+              <span>Explore every collection</span>
+              <h2 id="home-subcategory-showcase-title">Shop by subcategory.</h2>
+            </div>
+            {displaySubCategories.length > 1 && (
+              <div className="home-subcategory-showcase-controls">
+                <button type="button" onClick={() => scrollSubCategories(-1)} aria-label="Previous subcategories">‹</button>
+                <button type="button" onClick={() => scrollSubCategories(1)} aria-label="Next subcategories">›</button>
+              </div>
+            )}
+          </div>
+
+          <div className="home-subcategory-track" ref={subCategoryTrackRef}>
+            {displaySubCategories.map((subCategory) => {
+              const imageUrl = resolveAssetUrl(
+                apiBaseUrl,
+                subCategory.image_url,
+                subCategory.image_path
+              );
+
+              return (
+                <Link
+                  key={subCategory.id}
+                  to={`/categories/${subCategory.category.slug}/sub-categories/${subCategory.slug}`}
+                  className="home-subcategory-card"
+                >
+                  <div className="home-subcategory-media">
+                    <img
+                      src={imageUrl || fallbackLogoUrl}
+                      className={imageUrl ? undefined : 'is-fallback-logo'}
+                      alt={imageUrl ? subCategory.name : ''}
+                      loading="lazy"
+                      onError={applyMainLogoFallback}
+                    />
+                  </div>
+                  <div className="home-subcategory-copy">
+                    <span>{subCategory.category.name}</span>
+                    <h3>{subCategory.name}</h3>
+                    <small>{Number(subCategory.active_products_count || 0)} products</small>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {showcaseEvents.length > 0 && (
         <section className="event-showcase" id="events">
           {showcaseEvents.map((eventItem) => (
@@ -556,17 +807,46 @@ export default function HomePage() {
         </section>
       )}
 
-      {products.length > 0 && (
-        <section id="products" className="section home-products-section">
-          <div className="section-head">
-            <div>
-              <span className="section-kicker">New arrivals</span>
-              <h2>Fresh pieces for every room.</h2>
-            </div>
-            <p>
-              Explore the latest products from the catalog, with live pricing and event discounts directly from the dashboard.
-            </p>
+      <section id="products" className="section home-products-section">
+        <div className="section-head">
+          <div>
+            <span className="section-kicker">New arrivals</span>
+            <h2>Fresh pieces for every room.</h2>
           </div>
+          <p>
+            Discover up to 100 catalog products in smooth batches of 8.
+          </p>
+        </div>
+
+        <div className="home-product-filters" role="group" aria-label="Sort products">
+          {homeProductSortOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={productSort === option.value ? 'is-active' : ''}
+              disabled={loadingProducts || loadingMoreProducts}
+              aria-pressed={productSort === option.value}
+              onClick={() => changeProductSort(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        {loadingProducts ? (
+          <div className="home-product-grid" aria-label="Loading products" aria-busy="true">
+            {Array.from({ length: 8 }, (_, index) => (
+              <div key={index} className="home-product-card home-product-skeleton" aria-hidden="true">
+                <div className="home-product-media" />
+                <div className="home-product-copy">
+                  <span />
+                  <strong />
+                  <span />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : products.length > 0 ? (
           <div className="home-product-grid">
             {products.map((product) => {
               const imageUrl = resolveAssetUrl(apiBaseUrl, product.image_url, product.image_path);
@@ -597,42 +877,30 @@ export default function HomePage() {
               );
             })}
           </div>
+        ) : (
+          <div className="home-product-empty">
+            <strong>No products found</strong>
+            <span>Try a different product filter.</span>
+          </div>
+        )}
 
-          <div className="home-product-pagination">
+        {!loadingProducts && (
+          <div className="home-product-infinite" ref={productLoadMoreRef} aria-live="polite">
             {productLoadError && <p className="home-product-error">{productLoadError}</p>}
-            {hasMoreProducts ? (
-              <button type="button" className="home-load-more" onClick={loadMoreProducts} disabled={loadingMoreProducts}>
-                {loadingMoreProducts ? 'Loading products...' : 'Load more products'}
-              </button>
-            ) : (
-              <span className="home-product-count">Showing all {productPagination.total || products.length} products</span>
-            )}
+            {hasMoreProducts && !productLoadError ? (
+              <div className={`home-infinite-status ${loadingMoreProducts ? 'is-loading' : ''}`}>
+                {loadingMoreProducts && <span className="home-infinite-spinner" aria-hidden="true" />}
+                <span>{loadingMoreProducts ? 'Loading 8 more products...' : 'Keep scrolling to discover more'}</span>
+              </div>
+            ) : !productLoadError && products.length > 0 ? (
+              <span className="home-product-count">
+                {Number(productPagination.total || 0) > homeProductLimit
+                  ? `Showing the first ${homeProductLimit} products`
+                  : `Showing all ${products.length} products`}
+              </span>
+            ) : null}
           </div>
-        </section>
-      )}
-
-      <section id="collections" className="section">
-        <div className="section-head">
-          <div>
-            <span className="section-kicker">Collections</span>
-            <h2>Curated pieces for modern interiors.</h2>
-          </div>
-          <p>Editorial-looking groups that help the homepage feel richer while the real catalog keeps growing underneath.</p>
-        </div>
-        <div className="collection-grid">
-          {collections.map((item) => (
-            <article key={item.title} className="collection-card">
-              <div
-                className="collection-image"
-                style={{
-                  backgroundImage: `url(${item.image})`,
-                }}
-              />
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </article>
-          ))}
-        </div>
+        )}
       </section>
 
       <section id="rooms" className="section rooms">

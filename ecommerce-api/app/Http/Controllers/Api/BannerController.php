@@ -47,7 +47,7 @@ class BannerController extends Controller
             'button_width' => ['nullable', 'integer', 'min:40', 'max:400'],
             'button_height' => ['nullable', 'integer', 'min:24', 'max:160'],
             'button_text_size' => ['nullable', 'integer', 'min:10', 'max:64'],
-            'image' => ['nullable', 'image', 'max:4096'],
+            'image' => ['nullable', 'image', 'max:2048'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -96,7 +96,7 @@ class BannerController extends Controller
             'button_width' => ['nullable', 'integer', 'min:40', 'max:400'],
             'button_height' => ['nullable', 'integer', 'min:24', 'max:160'],
             'button_text_size' => ['nullable', 'integer', 'min:10', 'max:64'],
-            'image' => ['nullable', 'image', 'max:4096'],
+            'image' => ['nullable', 'image', 'max:2048'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);

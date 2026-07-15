@@ -38,14 +38,14 @@ const initialForm = {
   is_active: true,
 };
 
-const CROP_WIDTH = 480;
-const CROP_HEIGHT = 101;
-const OUTPUT_WIDTH = 1536;
-const OUTPUT_HEIGHT = 323;
+const CROP_WIDTH = 960;
+const MAX_BANNER_UPLOAD_BYTES = 1.8 * 1024 * 1024;
 
 export default function BannersPage() {
   const fileInputRef = useRef(null);
+  const editFormRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  const buttonDraggingRef = useRef(false);
   const [banners, setBanners] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
@@ -56,6 +56,7 @@ export default function BannersPage() {
   const [zoom, setZoom] = useState(1);
   const [minZoom, setMinZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [cropAdjusted, setCropAdjusted] = useState(false);
   const [draggingCrop, setDraggingCrop] = useState(false);
   const [draggingButton, setDraggingButton] = useState(false);
   const [showButtonModal, setShowButtonModal] = useState(false);
@@ -66,6 +67,10 @@ export default function BannersPage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
+  const cropFrameHeight = useMemo(() => {
+    if (!imageMeta.width || !imageMeta.height) return 320;
+    return Math.round((CROP_WIDTH * imageMeta.height) / imageMeta.width);
+  }, [imageMeta]);
 
   useEffect(() => {
     async function loadBanners() {
@@ -91,16 +96,12 @@ export default function BannersPage() {
     image.onload = () => {
       const width = image.naturalWidth || image.width;
       const height = image.naturalHeight || image.height;
-      const newMinZoom = Math.max(CROP_WIDTH / width, CROP_HEIGHT / height);
-      const scaledWidth = width * newMinZoom;
-      const scaledHeight = height * newMinZoom;
+      const newMinZoom = CROP_WIDTH / width;
       setImageMeta({ width, height });
       setMinZoom(newMinZoom);
       setZoom(newMinZoom);
-      setPosition({
-        x: (CROP_WIDTH - scaledWidth) / 2,
-        y: (CROP_HEIGHT - scaledHeight) / 2,
-      });
+      setPosition({ x: 0, y: 0 });
+      setCropAdjusted(false);
     };
   }, [imageSrc]);
 
@@ -145,6 +146,7 @@ export default function BannersPage() {
     setImageFile(file);
     setImageSrc(URL.createObjectURL(file));
     setCurrentImageUrl('');
+    setCropAdjusted(false);
   }
 
   function onImageInputChange(event) {
@@ -153,6 +155,7 @@ export default function BannersPage() {
     setImageFile(file);
     setImageSrc(URL.createObjectURL(file));
     setCurrentImageUrl('');
+    setCropAdjusted(false);
     event.target.value = '';
   }
 
@@ -177,18 +180,25 @@ export default function BannersPage() {
     setCurrentImageUrl(banner.image_url || '');
     setImageFile(null);
     setImageSrc('');
+    setCropAdjusted(false);
     setMessage('');
     setError('');
+    requestAnimationFrame(() => {
+      editFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
-  function resetForm() {
+  function resetForm(clearFeedback = true) {
     setEditingId(null);
     setForm(initialForm);
     setCurrentImageUrl('');
     setImageFile(null);
     setImageSrc('');
-    setMessage('');
-    setError('');
+    setCropAdjusted(false);
+    if (clearFeedback) {
+      setMessage('');
+      setError('');
+    }
   }
 
   function centerButtonPosition() {
@@ -200,8 +210,8 @@ export default function BannersPage() {
     const scaledHeight = imageMeta.height * nextZoom;
     const minX = Math.min(0, CROP_WIDTH - scaledWidth);
     const maxX = Math.max(0, CROP_WIDTH - scaledWidth);
-    const minY = Math.min(0, CROP_HEIGHT - scaledHeight);
-    const maxY = Math.max(0, CROP_HEIGHT - scaledHeight);
+    const minY = Math.min(0, cropFrameHeight - scaledHeight);
+    const maxY = Math.max(0, cropFrameHeight - scaledHeight);
 
     return {
       x: Math.min(Math.max(nextPosition.x, minX), maxX),
@@ -234,6 +244,7 @@ export default function BannersPage() {
       zoom
     );
     setPosition(nextPosition);
+    if (dx !== 0 || dy !== 0) setCropAdjusted(true);
   }
 
   function handleCropEnd() {
@@ -243,11 +254,12 @@ export default function BannersPage() {
   function handleButtonDragStart(event) {
     event.preventDefault();
     event.stopPropagation();
+    buttonDraggingRef.current = true;
     setDraggingButton(true);
   }
 
   function handleButtonDragMove(event) {
-    if (!draggingButton) return;
+    if (!buttonDraggingRef.current) return;
     const frame = event.currentTarget.getBoundingClientRect();
     const clientX = event.clientX ?? event.touches?.[0]?.clientX ?? 0;
     const clientY = event.clientY ?? event.touches?.[0]?.clientY ?? 0;
@@ -257,23 +269,34 @@ export default function BannersPage() {
   }
 
   function handleButtonDragEnd() {
+    buttonDraggingRef.current = false;
     setDraggingButton(false);
   }
 
   function handleZoomChange(event) {
-    const nextZoom = Math.max(0.05, Number(event.target.value) || 0.05);
+    const nextZoom = Math.max(minZoom, Number(event.target.value) || minZoom);
     setZoom(nextZoom);
     setPosition((prev) => clampPosition(prev, nextZoom));
+    setCropAdjusted(true);
   }
 
   function resetCrop() {
-    const scaledWidth = imageMeta.width * minZoom;
-    const scaledHeight = imageMeta.height * minZoom;
     setZoom(minZoom);
-    setPosition({
-      x: (CROP_WIDTH - scaledWidth) / 2,
-      y: (CROP_HEIGHT - scaledHeight) / 2,
-    });
+    setPosition({ x: 0, y: 0 });
+    setCropAdjusted(false);
+  }
+
+  async function canvasToBannerFile(canvas) {
+    const qualitySteps = [0.92, 0.85, 0.78, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2];
+    let selectedBlob = null;
+
+    for (const quality of qualitySteps) {
+      selectedBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+      if (!selectedBlob || selectedBlob.size <= MAX_BANNER_UPLOAD_BYTES) break;
+    }
+
+    if (!selectedBlob) return null;
+    return new File([selectedBlob], `banner-${Date.now()}.jpg`, { type: 'image/jpeg' });
   }
 
   async function getCroppedFile() {
@@ -282,29 +305,32 @@ export default function BannersPage() {
     image.src = imageSrc;
     await image.decode();
 
-    const canvas = document.createElement('canvas');
-    canvas.width = OUTPUT_WIDTH;
-    canvas.height = OUTPUT_HEIGHT;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
+    if (!cropAdjusted && imageFile?.size <= MAX_BANNER_UPLOAD_BYTES) return imageFile;
+
+    if (!cropAdjusted) {
+      const originalCanvas = document.createElement('canvas');
+      originalCanvas.width = imageMeta.width;
+      originalCanvas.height = imageMeta.height;
+      const originalContext = originalCanvas.getContext('2d');
+      if (!originalContext) return null;
+      originalContext.drawImage(image, 0, 0, imageMeta.width, imageMeta.height);
+      return canvasToBannerFile(originalCanvas);
+    }
 
     const sx = Math.max(0, -position.x / zoom);
     const sy = Math.max(0, -position.y / zoom);
     const sw = Math.min(imageMeta.width - sx, CROP_WIDTH / zoom);
-    const sh = Math.min(imageMeta.height - sy, CROP_HEIGHT / zoom);
+    const sh = Math.min(imageMeta.height - sy, cropFrameHeight / zoom);
 
-    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(sw));
+    canvas.height = Math.max(1, Math.round(sh));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
 
-    return new Promise((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return resolve(null);
-          resolve(new File([blob], `banner-${Date.now()}.jpg`, { type: blob.type }));
-        },
-        'image/jpeg',
-        0.9
-      );
-    });
+    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+
+    return canvasToBannerFile(canvas);
   }
 
   async function onSubmit(event) {
@@ -344,7 +370,8 @@ export default function BannersPage() {
         await createBanner(payload);
         setMessage('Banner created successfully.');
       }
-      resetForm();
+      resetForm(false);
+      setShowButtonModal(false);
       const data = await fetchBanners();
       const list = Array.isArray(data) ? data : [];
       list.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
@@ -363,7 +390,7 @@ export default function BannersPage() {
     try {
       await deleteBanner(bannerId);
       if (editingId === bannerId) {
-        resetForm();
+        resetForm(false);
       }
       setBanners((prev) => prev.filter((banner) => banner.id !== bannerId));
       setMessage('Banner deleted successfully.');
@@ -405,7 +432,21 @@ export default function BannersPage() {
 
   return (
     <CRow>
-      <CCol lg={4}>
+      {(error || message) && (
+        <CCol xs={12}>
+          {error && (
+            <CAlert color="danger" dismissible onClose={() => setError('')}>
+              {error}
+            </CAlert>
+          )}
+          {message && (
+            <CAlert color="success" dismissible onClose={() => setMessage('')}>
+              {message}
+            </CAlert>
+          )}
+        </CCol>
+      )}
+      <CCol lg={4} ref={editFormRef} className="banner-edit-panel">
         <CCard className="mb-4">
           <CCardHeader>{editingId ? 'Edit Banner' : 'Create Banner'}</CCardHeader>
           <CCardBody>
@@ -423,9 +464,25 @@ export default function BannersPage() {
                 />
               </div>
               <div className="mb-3">
-                <CButton type="button" color="dark" variant="outline" size="sm" onClick={() => setShowButtonModal(true)}>
-                  Upload Banner
-                </CButton>
+                <label className="form-label">Banner Image</label>
+                {editingId && (imageSrc || currentImageUrl) ? (
+                  <div className="banner-form-preview">
+                    <img src={imageSrc || currentImageUrl} alt={`${form.title || 'Banner'} preview`} />
+                    <button
+                      type="button"
+                      className="banner-form-edit-button"
+                      title="Edit banner image"
+                      aria-label="Edit banner image"
+                      onClick={() => setShowButtonModal(true)}
+                    >
+                      <CIcon icon={cilPen} />
+                    </button>
+                  </div>
+                ) : (
+                  <CButton type="button" color="dark" variant="outline" size="sm" onClick={() => setShowButtonModal(true)}>
+                    Upload Banner
+                  </CButton>
+                )}
               </div>
 
               <div className="mb-3">
@@ -436,7 +493,7 @@ export default function BannersPage() {
                   {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
                 </CButton>
                 {editingId && (
-                  <CButton type="button" color="secondary" variant="outline" onClick={resetForm}>
+                  <CButton type="button" color="secondary" variant="outline" onClick={() => resetForm()}>
                     Cancel
                   </CButton>
                 )}
@@ -489,6 +546,7 @@ export default function BannersPage() {
             <div className="banner-cropper">
               <div
                 className="banner-cropper-frame"
+                style={{ height: `${cropFrameHeight}px` }}
                 onMouseDown={handleCropStart}
                 onMouseMove={(event) => {
                   handleCropMove(event);
@@ -533,6 +591,7 @@ export default function BannersPage() {
                     display: 'grid',
                     placeItems: 'center',
                     fontSize: `${form.button_text_size || 14}px`,
+                    '--banner-button-text-color': form.button_text_color || '#ffffff',
                     background:
                       form.button_style === 'ghost'
                         ? 'rgba(255,255,255,0.6)'
@@ -560,8 +619,8 @@ export default function BannersPage() {
                 <input
                   id="bannerZoom"
                   type="range"
-                  min={0.05}
-                  max={Math.max(minZoom * 3, 4)}
+                  min={minZoom}
+                  max={Math.max(minZoom * 4, minZoom + 1)}
                   step="0.01"
                   value={zoom}
                   onChange={handleZoomChange}
@@ -570,16 +629,25 @@ export default function BannersPage() {
                   Reset
                 </button>
               </div>
-              <small className="text-body-secondary">Drag the image to adjust the crop.</small>
-              <small className="text-body-secondary">Drag the button to set its position.</small>
+              <small className="text-body-secondary">
+                {cropAdjusted ? 'Custom crop enabled.' : `Original image selected (${imageMeta.width} × ${imageMeta.height}).`}
+              </small>
+              <small className="text-body-secondary">Drag the image to crop it, or drag the button to set its position.</small>
             </div>
           )}
 
           {(imageSrc || currentImageUrl) && (
-            <div className="banner-modal-preview">
+            <div
+              className="banner-modal-preview"
+              onMouseMove={handleButtonDragMove}
+              onMouseUp={handleButtonDragEnd}
+              onMouseLeave={handleButtonDragEnd}
+              onTouchMove={handleButtonDragMove}
+              onTouchEnd={handleButtonDragEnd}
+            >
               <img src={imageSrc || currentImageUrl} alt="Banner preview" />
               <div
-                className="banner-modal-button"
+                className={`banner-modal-button ${draggingButton ? 'is-dragging' : ''}`}
                 style={{
                   left: `${form.button_pos_x}%`,
                   top: `${form.button_pos_y}%`,
@@ -587,6 +655,7 @@ export default function BannersPage() {
                   width: `${form.button_width || 140}px`,
                   height: `${form.button_height || 40}px`,
                   fontSize: `${form.button_text_size || 14}px`,
+                  '--banner-button-text-color': form.button_text_color || '#ffffff',
                   background:
                     form.button_style === 'ghost'
                       ? 'rgba(255,255,255,0.6)'
@@ -601,6 +670,10 @@ export default function BannersPage() {
                       ? `1px solid ${form.button_bg_color}`
                       : 'none',
                 }}
+                onMouseDown={handleButtonDragStart}
+                onTouchStart={handleButtonDragStart}
+                role="button"
+                tabIndex={0}
               >
                 {form.button_text || 'Button'}
               </div>
@@ -669,6 +742,7 @@ export default function BannersPage() {
                 type="color"
                 value={form.button_text_color}
                 onChange={onInputChange}
+                onInput={onInputChange}
               />
             </CCol>
           </CRow>
@@ -729,8 +803,6 @@ export default function BannersPage() {
         <CCard className="mb-4">
           <CCardHeader>Banners Priority (Drag to reorder)</CCardHeader>
           <CCardBody>
-            {error && <CAlert color="danger">{error}</CAlert>}
-            {message && <CAlert color="success">{message}</CAlert>}
             {loading ? (
               <p>Loading...</p>
             ) : (

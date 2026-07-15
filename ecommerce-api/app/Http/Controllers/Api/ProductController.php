@@ -76,11 +76,42 @@ class ProductController extends Controller
             ]);
 
         match ($sort) {
+            'popular' => $products
+                ->withCount([
+                    'favoritedBy as favorites_count',
+                    'cartItems as cart_count',
+                ])
+                ->orderByDesc('favorites_count')
+                ->orderByDesc('cart_count')
+                ->orderByDesc('id'),
+            'discount' => $products
+                ->whereNotNull('discount_price')
+                ->where('discount_price', '>', 0)
+                ->whereColumn('discount_price', '<', 'price')
+                ->orderByRaw('(price - discount_price) / NULLIF(price, 0) desc')
+                ->orderByDesc('id'),
             'price_asc' => $products->orderByRaw('COALESCE(NULLIF(discount_price, 0), price) asc'),
             'price_desc' => $products->orderByRaw('COALESCE(NULLIF(discount_price, 0), price) desc'),
             'name_asc' => $products->orderBy('name'),
             default => $products->orderByDesc('id'),
         };
+
+        if ($request->has('offset')) {
+            $offset = max($request->integer('offset'), 0);
+            $total = (clone $products)->reorder()->count();
+            $items = $products->skip($offset)->take($perPage)->get();
+            $nextOffset = $offset + $items->count();
+
+            return response()->json([
+                'data' => $items,
+                'current_page' => 1,
+                'last_page' => max((int) ceil($total / $perPage), 1),
+                'per_page' => $perPage,
+                'total' => $total,
+                'next_offset' => $nextOffset,
+                'has_more' => $nextOffset < $total,
+            ]);
+        }
 
         return response()->json($products->paginate($perPage)->withQueryString());
     }

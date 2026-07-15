@@ -11,6 +11,22 @@ use Illuminate\Validation\Rule;
 
 class SubCategoryController extends Controller
 {
+    public function publicIndex()
+    {
+        return response()->json(
+            SubCategory::query()
+                ->select(['id', 'category_id', 'name', 'slug', 'description', 'image_path', 'source_url', 'is_active'])
+                ->where('is_active', true)
+                ->whereHas('category', fn ($query) => $query->where('is_active', true))
+                ->with('category:id,name,slug')
+                ->withCount([
+                    'products as active_products_count' => fn ($query) => $query->where('is_active', true),
+                ])
+                ->orderBy('id')
+                ->get()
+        );
+    }
+
     public function index()
     {
         return response()->json(

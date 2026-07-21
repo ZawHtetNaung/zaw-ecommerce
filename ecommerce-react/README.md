@@ -24,7 +24,7 @@ React frontend using CoreUI free components, connected to Laravel Sanctum API.
 Set in `.env`:
 
 ```env
-VITE_API_BASE_URL=http://127.0.0.1:8000
+VITE_API_BASE_URL=https://api.your-domain.com
 ```
 
 ## Required backend endpoints

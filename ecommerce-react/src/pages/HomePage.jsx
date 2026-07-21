@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  API_BASE_URL,
   fetchPublicBanners,
   fetchPublicBrands,
   fetchPublicCategories,
@@ -192,7 +193,7 @@ export default function HomePage() {
   const subCategorySliderPausedRef = useRef(false);
   const eventTrackRefs = useRef({});
   const productLoadMoreRef = useRef(null);
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+  const apiBaseUrl = API_BASE_URL;
   const [authModal, setAuthModal] = useState(null);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', password_confirmation: '' });

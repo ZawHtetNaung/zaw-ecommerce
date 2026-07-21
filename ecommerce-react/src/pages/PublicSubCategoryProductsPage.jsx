@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { fetchPublicSubCategoryProducts } from '../api/client';
+import { API_BASE_URL, fetchPublicSubCategoryProducts } from '../api/client';
 import StorefrontHeader from '../components/StorefrontHeader';
 import RichTextContent from '../components/RichTextContent';
 import StoreProductCard from '../components/StoreProductCard';
 
 export default function PublicSubCategoryProductsPage() {
   const { categorySlug, subCategorySlug } = useParams();
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+  const apiBaseUrl = API_BASE_URL;
   const [pageData, setPageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

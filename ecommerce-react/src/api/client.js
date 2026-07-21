@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 export const API_LOADING_EVENT = 'messara:api-loading';
+export const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '');
 
 let pendingApiRequestCount = 0;
 const inFlightRequests = new Map();
@@ -47,7 +48,7 @@ function finishApiLoading(config) {
 }
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
+  baseURL: API_BASE_URL,
   headers: {
     Accept: 'application/json'
   }

@@ -48,6 +48,7 @@ class BannerController extends Controller
             'button_height' => ['nullable', 'integer', 'min:24', 'max:160'],
             'button_text_size' => ['nullable', 'integer', 'min:10', 'max:64'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -97,12 +98,14 @@ class BannerController extends Controller
             'button_height' => ['nullable', 'integer', 'min:24', 'max:160'],
             'button_text_size' => ['nullable', 'integer', 'min:10', 'max:64'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $updateData = [
             'title' => $validated['title'],
+            'image_alt_text' => $validated['image_alt_text'] ?? null,
             'subtitle' => $validated['subtitle'] ?? null,
             'button_text' => $validated['button_text'] ?? null,
             'button_link' => $validated['button_link'] ?? null,

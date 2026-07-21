@@ -35,6 +35,7 @@ class ProductController extends Controller
                 'price',
                 'discount_price',
                 'stock',
+                'is_in_stock',
                 'description',
                 'short_description',
                 'image_path',
@@ -70,9 +71,10 @@ class ProductController extends Controller
             ->with([
                 'category:id,name,slug',
                 'subCategory:id,category_id,name,slug',
-                'brand:id,name,image_path,is_active',
+                'brand:id,name,image_path,image_alt_text,is_active',
                 'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
                 'images',
+                'faqs',
             ]);
 
         match ($sort) {
@@ -145,13 +147,13 @@ class ProductController extends Controller
     public function publicIndexBySubCategory(string $categorySlug, string $subCategorySlug)
     {
         $category = Category::query()
-            ->select(['id', 'name', 'slug', 'description', 'image_path'])
+            ->select(['id', 'name', 'slug', 'description', 'image_path', 'image_alt_text'])
             ->where('slug', $categorySlug)
             ->where('is_active', true)
             ->firstOrFail();
 
         $subCategory = SubCategory::query()
-            ->select(['id', 'category_id', 'name', 'slug', 'description', 'image_path'])
+            ->select(['id', 'category_id', 'name', 'slug', 'description', 'image_path', 'image_alt_text'])
             ->where('category_id', $category->id)
             ->where('slug', $subCategorySlug)
             ->where('is_active', true)
@@ -172,6 +174,7 @@ class ProductController extends Controller
                 'price',
                 'discount_price',
                 'stock',
+                'is_in_stock',
                 'description',
                 'image_path',
                 'is_active',
@@ -182,11 +185,14 @@ class ProductController extends Controller
             ->where('sub_category_id', $subCategory->id)
             ->where('is_active', true)
             ->with([
-                'brand:id,name,image_path,is_active',
+                'brand:id,name,image_path,image_alt_text,is_active',
                 'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
                 'images',
-                'colors:id,name,image_path,is_active',
+                'faqs',
+                'colors:id,name,hex_code,image_path,image_alt_text,is_active',
                 'measurements:id,name,value,unit,is_active',
+                'sizeOptions:id,name,slug',
+                'flooringDetail', 'wallpaperDetail',
             ])
             ->orderByDesc('id')
             ->get();
@@ -214,34 +220,40 @@ class ProductController extends Controller
             ->with([
                 'category:id,name,slug,description,image_path',
                 'subCategory:id,name,slug,description,image_path,category_id',
-                'brand:id,name,image_path,is_active',
+                'brand:id,name,image_path,image_alt_text,is_active',
                 'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
                 'images',
-                'colors:id,name,image_path,is_active',
+                'faqs',
+                'colors:id,name,hex_code,image_path,image_alt_text,is_active',
                 'measurements:id,name,value,unit,is_active',
+                'sizeOptions:id,name,slug',
+                'flooringDetail', 'wallpaperDetail',
             ])
             ->firstOrFail();
 
-        return response()->json($product);
+        return response()->json($this->withPublicProductNavigation($product));
     }
 
     public function publicShowBySlug(string $productSlug)
     {
-        return response()->json(
-            Product::query()
-                ->where('slug', $productSlug)
-                ->where('is_active', true)
-                ->with([
-                    'category:id,name,slug,description,image_path',
-                    'subCategory:id,name,slug,description,image_path,category_id',
-                    'brand:id,name,image_path,is_active',
-                    'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
-                    'images',
-                    'colors:id,name,image_path,is_active',
-                    'measurements:id,name,value,unit,is_active',
-                ])
-                ->firstOrFail()
-        );
+        $product = Product::query()
+            ->where('slug', $productSlug)
+            ->where('is_active', true)
+            ->with([
+                'category:id,name,slug,description,image_path',
+                'subCategory:id,name,slug,description,image_path,category_id',
+                'brand:id,name,image_path,image_alt_text,is_active',
+                'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
+                'images',
+                'faqs',
+                'colors:id,name,hex_code,image_path,image_alt_text,is_active',
+                'measurements:id,name,value,unit,is_active',
+                'sizeOptions:id,name,slug',
+                'flooringDetail', 'wallpaperDetail',
+            ])
+            ->firstOrFail();
+
+        return response()->json($this->withPublicProductNavigation($product));
     }
 
     public function index()
@@ -251,11 +263,14 @@ class ProductController extends Controller
                 ->with([
                     'category:id,name',
                     'subCategory:id,name,category_id',
-                    'brand:id,name,image_path,is_active',
+                    'brand:id,name,image_path,image_alt_text,is_active',
                     'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
                     'images',
-                    'colors:id,name,image_path,is_active',
+                    'faqs',
+                    'colors:id,name,hex_code,image_path,image_alt_text,is_active',
                     'measurements:id,name,value,unit,is_active',
+                    'sizeOptions:id,name,slug',
+                    'flooringDetail', 'wallpaperDetail',
                 ])
                 ->latest()
                 ->get()
@@ -270,19 +285,50 @@ class ProductController extends Controller
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'event_id' => ['nullable', 'integer', 'exists:events,id'],
             'name' => ['required', 'string', 'max:255', 'unique:products,name'],
+            'product_type' => ['nullable', Rule::in(['furniture', 'flooring', 'wallpaper'])],
+            'selling_method' => ['nullable', Rule::in(['per_item', 'per_square_meter', 'per_linear_meter', 'per_roll', 'per_box', 'unspecified'])],
+            'physical_length' => ['nullable', 'numeric', 'min:0'], 'physical_width' => ['nullable', 'numeric', 'min:0'],
+            'physical_height' => ['nullable', 'numeric', 'min:0'], 'physical_weight' => ['nullable', 'numeric', 'min:0'],
+            'dimension_unit' => ['nullable', Rule::in(['mm', 'cm', 'm'])], 'weight_unit' => ['nullable', Rule::in(['g', 'kg'])],
+            'flooring' => ['nullable', 'array'], 'flooring.piece_length' => ['nullable', 'numeric', 'min:0'],
+            'flooring.piece_width' => ['nullable', 'numeric', 'min:0'], 'flooring.thickness' => ['nullable', 'numeric', 'min:0'],
+            'flooring.coverage_per_box' => ['nullable', 'numeric', 'min:0'], 'flooring.pieces_per_box' => ['nullable', 'integer', 'min:1'],
+            'flooring.minimum_order' => ['nullable', 'numeric', 'min:0'], 'flooring.waste_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'wallpaper' => ['nullable', 'array'], 'wallpaper.roll_width' => ['nullable', 'numeric', 'min:0'],
+            'wallpaper.roll_length' => ['nullable', 'numeric', 'min:0'], 'wallpaper.coverage_per_roll' => ['nullable', 'numeric', 'min:0'],
+            'wallpaper.pattern_repeat' => ['nullable', 'numeric', 'min:0'], 'wallpaper.match_type' => ['nullable', Rule::in(['free', 'straight', 'drop', 'reverse'])],
             'price' => ['required', 'numeric', 'min:0'],
             'discount_price' => ['nullable', 'numeric', 'min:0'],
-            'stock' => ['required', 'integer', 'min:0'],
+            'stock' => ['nullable', 'integer', 'min:0'],
+            'is_in_stock' => ['nullable', 'boolean'],
             'description' => ['nullable', 'string'],
+            'short_description' => ['nullable', 'string'],
+            'seo_title' => ['nullable', 'string', 'max:255'],
+            'seo_description' => ['nullable', 'string', 'max:1000'],
             'images' => ['nullable', 'array', 'max:8'],
             'images.*' => ['image', 'max:2048'],
+            'image_alt_texts' => ['nullable', 'array'],
+            'image_alt_texts.*' => ['nullable', 'string', 'max:255'],
+            'faqs' => ['nullable', 'array'],
+            'faqs.*.question' => ['required_with:faqs', 'string', 'max:1000'],
+            'faqs.*.answer' => ['required_with:faqs', 'string', 'max:5000'],
             'color_ids' => ['nullable', 'array'],
             'color_ids.*' => ['integer', 'exists:colors,id'],
             'measurement_ids' => ['nullable', 'array'],
             'measurement_ids.*' => ['integer', 'exists:measurements,id'],
+            'measurement_values' => ['nullable', 'array'],
+            'measurement_values.*.value' => ['nullable', 'numeric', 'min:0'],
+            'measurement_values.*.unit' => ['nullable', 'string', 'max:20'],
+            'size_option_ids' => ['nullable', 'array'],
+            'size_option_ids.*' => ['integer', 'exists:size_options,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
+        $validated['product_type'] = $validated['product_type'] ?? 'furniture';
+        $validated['selling_method'] = $validated['selling_method'] ?? 'per_item';
+        $validated['dimension_unit'] = $validated['dimension_unit'] ?? 'cm';
+        $validated['weight_unit'] = $validated['weight_unit'] ?? 'kg';
+        $this->normalizeStockState($validated);
         $validated['slug'] = Str::slug($validated['name']);
         $validated['is_active'] = $validated['is_active'] ?? true;
         $request->validate([
@@ -305,8 +351,11 @@ class ProductController extends Controller
 
         $product = Product::create($validated);
         $product->colors()->sync($validated['color_ids'] ?? []);
-        $product->measurements()->sync($validated['measurement_ids'] ?? []);
-        $this->storeImages($product, $request->file('images', []));
+        $this->syncMeasurements($product, $validated['measurement_ids'] ?? [], $validated['measurement_values'] ?? []);
+        $this->syncSizeOptions($product, $validated['size_option_ids'] ?? []);
+        $this->syncTypeDetails($product, $validated);
+        $this->syncFaqs($product, $validated['faqs'] ?? []);
+        $this->storeImages($product, $request->file('images', []), $validated['image_alt_texts'] ?? []);
         if (! empty($validated['event_id'])) {
             $this->applyEventDiscount($product, (int) $validated['event_id']);
         } else {
@@ -316,11 +365,14 @@ class ProductController extends Controller
         $product->load([
             'category:id,name',
             'subCategory:id,name,category_id',
-            'brand:id,name,image_path,is_active',
+            'brand:id,name,image_path,image_alt_text,is_active',
             'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
             'images',
-            'colors:id,name,image_path,is_active',
+            'faqs',
+            'colors:id,name,hex_code,image_path,image_alt_text,is_active',
             'measurements:id,name,value,unit,is_active',
+            'sizeOptions:id,name,slug',
+            'flooringDetail', 'wallpaperDetail',
         ]);
 
         return response()->json([
@@ -334,11 +386,14 @@ class ProductController extends Controller
         return response()->json($product->load([
             'category:id,name',
             'subCategory:id,name,category_id',
-            'brand:id,name,image_path,is_active',
+            'brand:id,name,image_path,image_alt_text,is_active',
             'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
             'images',
-            'colors:id,name,image_path,is_active',
+            'faqs',
+            'colors:id,name,hex_code,image_path,image_alt_text,is_active',
             'measurements:id,name,value,unit,is_active',
+            'sizeOptions:id,name,slug',
+            'flooringDetail', 'wallpaperDetail',
         ]));
     }
 
@@ -350,21 +405,53 @@ class ProductController extends Controller
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'event_id' => ['nullable', 'integer', 'exists:events,id'],
             'name' => ['required', 'string', 'max:255', Rule::unique('products', 'name')->ignore($product->id)],
+            'product_type' => ['nullable', Rule::in(['furniture', 'flooring', 'wallpaper'])],
+            'selling_method' => ['nullable', Rule::in(['per_item', 'per_square_meter', 'per_linear_meter', 'per_roll', 'per_box', 'unspecified'])],
+            'physical_length' => ['nullable', 'numeric', 'min:0'], 'physical_width' => ['nullable', 'numeric', 'min:0'],
+            'physical_height' => ['nullable', 'numeric', 'min:0'], 'physical_weight' => ['nullable', 'numeric', 'min:0'],
+            'dimension_unit' => ['nullable', Rule::in(['mm', 'cm', 'm'])], 'weight_unit' => ['nullable', Rule::in(['g', 'kg'])],
+            'flooring' => ['nullable', 'array'], 'flooring.piece_length' => ['nullable', 'numeric', 'min:0'],
+            'flooring.piece_width' => ['nullable', 'numeric', 'min:0'], 'flooring.thickness' => ['nullable', 'numeric', 'min:0'],
+            'flooring.coverage_per_box' => ['nullable', 'numeric', 'min:0'], 'flooring.pieces_per_box' => ['nullable', 'integer', 'min:1'],
+            'flooring.minimum_order' => ['nullable', 'numeric', 'min:0'], 'flooring.waste_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'wallpaper' => ['nullable', 'array'], 'wallpaper.roll_width' => ['nullable', 'numeric', 'min:0'],
+            'wallpaper.roll_length' => ['nullable', 'numeric', 'min:0'], 'wallpaper.coverage_per_roll' => ['nullable', 'numeric', 'min:0'],
+            'wallpaper.pattern_repeat' => ['nullable', 'numeric', 'min:0'], 'wallpaper.match_type' => ['nullable', Rule::in(['free', 'straight', 'drop', 'reverse'])],
             'price' => ['required', 'numeric', 'min:0'],
             'discount_price' => ['nullable', 'numeric', 'min:0'],
-            'stock' => ['required', 'integer', 'min:0'],
+            'stock' => ['nullable', 'integer', 'min:0'],
+            'is_in_stock' => ['nullable', 'boolean'],
             'description' => ['nullable', 'string'],
+            'short_description' => ['nullable', 'string'],
+            'seo_title' => ['nullable', 'string', 'max:255'],
+            'seo_description' => ['nullable', 'string', 'max:1000'],
             'images' => ['nullable', 'array', 'max:8'],
             'images.*' => ['image', 'max:2048'],
+            'image_alt_texts' => ['nullable', 'array'],
+            'image_alt_texts.*' => ['nullable', 'string', 'max:255'],
+            'existing_image_alt_texts' => ['nullable', 'array'],
+            'existing_image_alt_texts.*' => ['nullable', 'string', 'max:255'],
+            'faqs' => ['nullable', 'array'],
+            'faqs.*.question' => ['required_with:faqs', 'string', 'max:1000'],
+            'faqs.*.answer' => ['required_with:faqs', 'string', 'max:5000'],
             'remove_image_ids' => ['nullable', 'array'],
             'remove_image_ids.*' => ['integer'],
             'color_ids' => ['nullable', 'array'],
             'color_ids.*' => ['integer', 'exists:colors,id'],
             'measurement_ids' => ['nullable', 'array'],
             'measurement_ids.*' => ['integer', 'exists:measurements,id'],
+            'measurement_values' => ['nullable', 'array'],
+            'measurement_values.*.value' => ['nullable', 'numeric', 'min:0'],
+            'measurement_values.*.unit' => ['nullable', 'string', 'max:20'],
+            'size_option_ids' => ['nullable', 'array'],
+            'size_option_ids.*' => ['integer', 'exists:size_options,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
-
+        $validated['product_type'] = $validated['product_type'] ?? $product->product_type ?? 'furniture';
+        $validated['selling_method'] = $validated['selling_method'] ?? $product->selling_method ?? 'per_item';
+        $validated['dimension_unit'] = $validated['dimension_unit'] ?? $product->dimension_unit ?? 'cm';
+        $validated['weight_unit'] = $validated['weight_unit'] ?? $product->weight_unit ?? 'kg';
+        $this->normalizeStockState($validated, $product);
         $newSlug = Str::slug($validated['name']);
         if (
             $newSlug !== $product->slug
@@ -379,10 +466,18 @@ class ProductController extends Controller
             'brand_id' => $validated['brand_id'] ?? null,
             'event_id' => $validated['event_id'] ?? null,
             'name' => $validated['name'],
+            'product_type' => $validated['product_type'], 'selling_method' => $validated['selling_method'],
+            'physical_length' => $validated['physical_length'] ?? null, 'physical_width' => $validated['physical_width'] ?? null,
+            'physical_height' => $validated['physical_height'] ?? null, 'physical_weight' => $validated['physical_weight'] ?? null,
+            'dimension_unit' => $validated['dimension_unit'], 'weight_unit' => $validated['weight_unit'],
             'slug' => $newSlug,
             'price' => $validated['price'],
             'stock' => $validated['stock'],
+            'is_in_stock' => $validated['is_in_stock'],
             'description' => $validated['description'] ?? null,
+            'short_description' => $validated['short_description'] ?? null,
+            'seo_title' => $validated['seo_title'] ?? null,
+            'seo_description' => $validated['seo_description'] ?? null,
             'is_active' => $validated['is_active'] ?? $product->is_active,
         ];
         $request->validate([
@@ -401,9 +496,15 @@ class ProductController extends Controller
 
         $product->update($updateData);
         $product->colors()->sync($validated['color_ids'] ?? []);
-        $product->measurements()->sync($validated['measurement_ids'] ?? []);
+        $this->syncMeasurements($product, $validated['measurement_ids'] ?? [], $validated['measurement_values'] ?? []);
+        $this->syncSizeOptions($product, $validated['size_option_ids'] ?? []);
+        $this->syncTypeDetails($product, $validated);
+        $this->syncFaqs($product, $validated['faqs'] ?? []);
         $this->removeImages($product, collect($validated['remove_image_ids'] ?? []));
-        $this->storeImages($product, $request->file('images', []));
+        foreach ($validated['existing_image_alt_texts'] ?? [] as $imageId => $altText) {
+            $product->images()->whereKey($imageId)->update(['alt_text' => $altText ?: null]);
+        }
+        $this->storeImages($product, $request->file('images', []), $validated['image_alt_texts'] ?? []);
         if (! empty($validated['event_id'])) {
             $this->applyEventDiscount($product, (int) $validated['event_id']);
         } else {
@@ -416,11 +517,14 @@ class ProductController extends Controller
             'product' => $product->fresh()->load([
                 'category:id,name',
                 'subCategory:id,name,category_id',
-                'brand:id,name,image_path,is_active',
+                'brand:id,name,image_path,image_alt_text,is_active',
                 'event:id,name,discount_type,discount_value,is_active,starts_at,ends_at',
                 'images',
-                'colors:id,name,image_path,is_active',
+                'faqs',
+                'colors:id,name,hex_code,image_path,image_alt_text,is_active',
                 'measurements:id,name,value,unit,is_active',
+                'sizeOptions:id,name,slug',
+                'flooringDetail', 'wallpaperDetail',
             ]),
         ]);
     }
@@ -439,18 +543,19 @@ class ProductController extends Controller
         ]);
     }
 
-    protected function storeImages(Product $product, array $images): void
+    protected function storeImages(Product $product, array $images, array $altTexts = []): void
     {
         if (count($images) === 0) {
             return;
         }
 
         $currentOrder = (int) ($product->images()->max('sort_order') ?? -1);
-        foreach ($images as $image) {
+        foreach ($images as $index => $image) {
             $currentOrder++;
             $path = $image->store('products', 'public');
             $product->images()->create([
                 'path' => $path,
+                'alt_text' => ($altTexts[$index] ?? null) ?: $product->name,
                 'sort_order' => $currentOrder,
             ]);
         }
@@ -495,5 +600,121 @@ class ProductController extends Controller
         }
 
         $product->update(['discount_price' => $discounted]);
+    }
+
+    protected function syncFaqs(Product $product, array $faqs): void
+    {
+        $product->faqs()->delete();
+        foreach (array_values($faqs) as $index => $faq) {
+            $product->faqs()->create([
+                'question' => trim($faq['question']),
+                'answer' => trim($faq['answer']),
+                'sort_order' => $index,
+            ]);
+        }
+    }
+
+    protected function syncMeasurements(Product $product, array $measurementIds, array $values): void
+    {
+        $sync = [];
+        foreach ($measurementIds as $measurementId) {
+            $measurementValue = $values[$measurementId] ?? [];
+            $sync[$measurementId] = [
+                'value' => ($measurementValue['value'] ?? '') !== '' ? $measurementValue['value'] : null,
+                'unit' => ($measurementValue['unit'] ?? '') !== '' ? $measurementValue['unit'] : null,
+            ];
+        }
+        $product->measurements()->sync($sync);
+    }
+
+    protected function syncSizeOptions(Product $product, array $sizeOptionIds): void
+    {
+        $sync = [];
+        foreach (array_values($sizeOptionIds) as $index => $sizeOptionId) {
+            $sync[$sizeOptionId] = ['sort_order' => $index];
+        }
+        $product->sizeOptions()->sync($sync);
+    }
+
+    protected function syncTypeDetails(Product $product, array $validated): void
+    {
+        if ($validated['product_type'] === 'flooring') {
+            $product->flooringDetail()->updateOrCreate([], $validated['flooring'] ?? []);
+        } else {
+            $product->flooringDetail()->delete();
+        }
+        if ($validated['product_type'] === 'wallpaper') {
+            $product->wallpaperDetail()->updateOrCreate([], $validated['wallpaper'] ?? []);
+        } else {
+            $product->wallpaperDetail()->delete();
+        }
+    }
+
+    /**
+     * Keep the explicit availability switch and numeric quantity consistent.
+     *
+     * Older clients can continue sending only `stock`; newer clients can send
+     * `is_in_stock`. Turning availability on guarantees at least one item,
+     * while turning it off clears the quantity.
+     */
+    protected function normalizeStockState(array &$validated, ?Product $product = null): void
+    {
+        $hasExplicitAvailability = array_key_exists('is_in_stock', $validated)
+            && $validated['is_in_stock'] !== null;
+        $hasQuantity = array_key_exists('stock', $validated)
+            && $validated['stock'] !== null;
+
+        $isInStock = $hasExplicitAvailability
+            ? (bool) $validated['is_in_stock']
+            : ($hasQuantity
+                ? (int) $validated['stock'] > 0
+                : (bool) ($product?->is_in_stock ?? false));
+
+        $quantity = $hasQuantity
+            ? (int) $validated['stock']
+            : (int) ($product?->stock ?? 0);
+
+        $validated['is_in_stock'] = $isInStock;
+        $validated['stock'] = $isInStock ? max(1, $quantity) : 0;
+    }
+
+    /**
+     * Add lightweight previous/next links using the same newest-first order as
+     * the public subcategory product listing.
+     */
+    protected function withPublicProductNavigation(Product $product): array
+    {
+        $siblings = Product::query()
+            ->select(['id', 'name', 'slug'])
+            ->where('is_active', true)
+            ->where('category_id', $product->category_id);
+
+        if ($product->sub_category_id === null) {
+            $siblings->whereNull('sub_category_id');
+        } else {
+            $siblings->where('sub_category_id', $product->sub_category_id);
+        }
+
+        $previous = (clone $siblings)
+            ->where('id', '>', $product->id)
+            ->orderBy('id')
+            ->first();
+        $next = (clone $siblings)
+            ->where('id', '<', $product->id)
+            ->orderByDesc('id')
+            ->first();
+
+        $navigationItem = static fn (?Product $item): ?array => $item ? [
+            'id' => $item->id,
+            'name' => $item->name,
+            'slug' => $item->slug,
+        ] : null;
+
+        return array_merge($product->toArray(), [
+            'navigation' => [
+                'previous' => $navigationItem($previous),
+                'next' => $navigationItem($next),
+            ],
+        ]);
     }
 }

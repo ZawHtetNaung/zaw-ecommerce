@@ -18,7 +18,7 @@ use Throwable;
 class ImportWordPressCatalog extends Command
 {
     protected $signature = 'wordpress:import-catalog
-        {--database=wordpress_source : Staging MySQL database}
+        {--database=i8055463_wp1 : Canonical WordPress MySQL database}
         {--uploads= : Absolute path to wp-content/uploads}
         {--url=https://www.messaraliving.com : Original site URL}
         {--banners-only : Import only the current Revolution Slider banners}
@@ -103,6 +103,13 @@ class ImportWordPressCatalog extends Command
                     $postMeta = $meta[$id] ?? [];
                     $regular = $this->money($postMeta['_regular_price'] ?? $postMeta['_price'] ?? 0);
                     $sale = $this->money($postMeta['_sale_price'] ?? null);
+                    $stockQuantity = max(0, (int) ($postMeta['_stock'] ?? 0));
+                    $stockStatus = strtolower(trim((string) ($postMeta['_stock_status'] ?? '')));
+                    $isInStock = match ($stockStatus) {
+                        'instock' => true,
+                        'outofstock' => false,
+                        default => $stockQuantity > 0,
+                    };
                     $categoryId = $fallback->id;
                     $subCategoryId = null;
                     $productTerms = $terms[$id] ?? [];
@@ -127,9 +134,10 @@ class ImportWordPressCatalog extends Command
                             'sku' => $this->nullable($postMeta['_sku'] ?? null),
                             'price' => $regular,
                             'discount_price' => $sale !== null && $sale < $regular ? $sale : null,
-                            'stock' => max(0, (int) ($postMeta['_stock'] ?? 0)),
+                            'stock' => $isInStock ? max(1, $stockQuantity) : 0,
+                            'is_in_stock' => $isInStock,
                             'description' => $this->nullable($post->post_content),
-                            'short_description' => $this->nullable($post->post_excerpt),
+                            'short_description' => $this->nullable(html_entity_decode(strip_tags((string) $post->post_excerpt), ENT_QUOTES | ENT_HTML5, 'UTF-8')),
                             'seo_title' => $this->nullable($postMeta['_yoast_wpseo_title'] ?? $postMeta['rank_math_title'] ?? null),
                             'seo_description' => $this->nullable($postMeta['_yoast_wpseo_metadesc'] ?? $postMeta['rank_math_description'] ?? null),
                             'source_url' => rtrim((string) $this->option('url'), '/').'/product/'.$slug.'/',
@@ -163,6 +171,11 @@ class ImportWordPressCatalog extends Command
 
         $bar->finish();
         $this->newLine(2);
+        $this->call('wordpress:classify-product-types', ['--database' => $this->option('database'), '--apply' => true]);
+        $this->call('wordpress:map-specifications', ['--database' => $this->option('database')]);
+        $this->call('wordpress:map-sizes', ['--database' => $this->option('database')]);
+        $this->call('wordpress:map-color-images', ['--database' => $this->option('database'), '--uploads' => $uploads]);
+        $this->call('wordpress:rebuild-canonical-content', ['--database' => $this->option('database'), '--apply' => true]);
         $this->info("Imported {$imported} products; {$missingImages} referenced images were not found.");
         $bannerCount = $this->importBanners($uploads);
         $this->info("Imported {$bannerCount} current Messara Living banners.");

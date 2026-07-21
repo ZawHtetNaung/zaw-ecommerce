@@ -16,6 +16,7 @@ import {
 import CIcon from '@coreui/icons-react';
 import { cilPen, cilTrash } from '@coreui/icons';
 import AppDataTable from '../components/AppDataTable';
+import RichTextEditor from '../components/RichTextEditor';
 import {
   createSubCategory,
   deleteSubCategory,
@@ -29,6 +30,7 @@ const initialForm = {
   name: '',
   description: '',
   image: null,
+  image_alt_text: '',
   is_active: true,
 };
 
@@ -97,6 +99,7 @@ export default function SubCategoriesPage() {
       name: subCategory.name,
       description: subCategory.description || '',
       image: null,
+      image_alt_text: subCategory.image_alt_text || '',
       is_active: subCategory.is_active,
     });
     setCurrentImageUrl(subCategory.image_url || '');
@@ -124,6 +127,7 @@ export default function SubCategoriesPage() {
     payload.append('name', form.name);
     payload.append('description', form.description || '');
     payload.append('is_active', form.is_active ? '1' : '0');
+    payload.append('image_alt_text', form.image_alt_text || '');
     if (form.image) {
       payload.append('image', form.image);
     }
@@ -216,13 +220,7 @@ export default function SubCategoriesPage() {
                 <CFormInput label="Name" name="name" value={form.name} onChange={onInputChange} required />
               </div>
               <div className="mb-3">
-                <CFormTextarea
-                  label="Description"
-                  name="description"
-                  rows={3}
-                  value={form.description}
-                  onChange={onInputChange}
-                />
+                <RichTextEditor label="Description" value={form.description} onChange={(description) => setForm((prev) => ({ ...prev, description }))} />
               </div>
 
               <div className="mb-3">
@@ -257,6 +255,7 @@ export default function SubCategoriesPage() {
                   className="d-none"
                   onChange={onImageInputChange}
                 />
+                <CFormInput className="mt-2" label="Image Alt Text" name="image_alt_text" value={form.image_alt_text} onChange={onInputChange} />
               </div>
 
               <div className="mb-3">

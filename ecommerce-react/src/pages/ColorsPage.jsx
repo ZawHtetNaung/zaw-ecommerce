@@ -18,7 +18,9 @@ import { createColor, deleteColor, fetchColors, updateColor } from '../api/clien
 
 const initialForm = {
   name: '',
+  hex_code: '',
   image: null,
+  image_alt_text: '',
   is_active: true,
 };
 
@@ -72,7 +74,9 @@ export default function ColorsPage() {
     setEditingId(color.id);
     setForm({
       name: color.name,
+      hex_code: color.hex_code || '',
       image: null,
+      image_alt_text: color.image_alt_text || '',
       is_active: color.is_active,
     });
     setCurrentImageUrl(color.image_url || '');
@@ -94,7 +98,9 @@ export default function ColorsPage() {
 
     const payload = new FormData();
     payload.append('name', form.name);
+    payload.append('hex_code', form.hex_code || '');
     payload.append('is_active', form.is_active ? '1' : '0');
+    payload.append('image_alt_text', form.image_alt_text || '');
     if (form.image) payload.append('image', form.image);
 
     try {
@@ -133,9 +139,14 @@ export default function ColorsPage() {
       { name: 'ID', selector: (row) => row.id, sortable: true, width: '80px' },
       {
         name: 'Image',
-        cell: (row) => (row.image_url ? <img src={row.image_url} alt={row.name} className="product-thumb" /> : '-'),
+        cell: (row) => row.image_url
+          ? <img src={row.image_url} alt={row.image_alt_text || row.name} className="product-thumb" />
+          : row.hex_code
+            ? <span title={row.hex_code} style={{ display: 'inline-block', width: 42, height: 42, borderRadius: '50%', backgroundColor: row.hex_code, border: '1px solid #cbd5e1' }} />
+            : '—',
       },
       { name: 'Name', selector: (row) => row.name, sortable: true },
+      { name: 'Source', selector: (row) => row.source_taxonomy || 'Manual', sortable: true },
       { name: 'Status', selector: (row) => (row.is_active ? 'Active' : 'Inactive'), sortable: true },
       {
         name: 'Actions',
@@ -165,6 +176,10 @@ export default function ColorsPage() {
                 <CFormInput label="Name" name="name" value={form.name} onChange={onInputChange} required />
               </div>
               <div className="mb-3">
+                <CFormInput label="Solid Color (optional)" name="hex_code" placeholder="#RRGGBB" pattern="^#[0-9A-Fa-f]{6}$" value={form.hex_code} onChange={onInputChange} />
+                {/^#[0-9A-Fa-f]{6}$/.test(form.hex_code) && <span className="mt-2 d-inline-block" title={form.hex_code} style={{ width: 42, height: 42, borderRadius: '50%', backgroundColor: form.hex_code, border: '1px solid #cbd5e1' }} />}
+              </div>
+              <div className="mb-3">
                 <label className="form-label">Image (Single)</label>
                 <div
                   className={`drop-zone ${isDragOver ? 'drop-zone-active' : ''} ${(form.image || currentImageUrl) ? 'drop-zone-has-image' : ''}`}
@@ -190,6 +205,7 @@ export default function ColorsPage() {
                   )}
                 </div>
                 <input ref={fileInputRef} type="file" accept="image/*" className="d-none" onChange={onImageInputChange} />
+                <CFormInput className="mt-2" label="Image Alt Text" name="image_alt_text" value={form.image_alt_text} onChange={onInputChange} />
               </div>
               <div className="mb-3">
                 <CFormCheck label="Active" name="is_active" checked={form.is_active} onChange={onInputChange} />

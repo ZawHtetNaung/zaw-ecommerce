@@ -26,7 +26,7 @@ class CartController extends Controller
             ->where('is_active', true)
             ->findOrFail($validated['product_id']);
 
-        if ($product->stock < 1) {
+        if (! $product->is_in_stock || $product->stock < 1) {
             return response()->json(['message' => 'This product is currently out of stock.'], 422);
         }
 
@@ -53,6 +53,10 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1', 'max:99'],
         ]);
         $cartItem->loadMissing('product');
+
+        if (! $cartItem->product->is_active || ! $cartItem->product->is_in_stock || $cartItem->product->stock < 1) {
+            return response()->json(['message' => 'This product is currently out of stock.'], 422);
+        }
 
         if ($validated['quantity'] > $cartItem->product->stock) {
             return response()->json(['message' => 'The requested quantity is higher than the available stock.'], 422);
@@ -96,21 +100,26 @@ class CartController extends Controller
             ->get()
             ->map(function (CartItem $item): array {
                 $unitPrice = (float) ($item->product->discount_price ?: $item->product->price);
+                $isAvailable = $item->product->is_active
+                    && $item->product->is_in_stock
+                    && $item->product->stock >= $item->quantity;
 
                 return [
                     'id' => $item->id,
                     'product_id' => $item->product_id,
                     'quantity' => $item->quantity,
+                    'is_available' => $isAvailable,
                     'unit_price' => number_format($unitPrice, 2, '.', ''),
                     'line_total' => number_format($unitPrice * $item->quantity, 2, '.', ''),
                     'product' => $item->product,
                 ];
             });
+        $availableItems = $items->where('is_available', true);
 
         return [
             'items' => $items->values(),
-            'count' => $items->sum('quantity'),
-            'subtotal' => number_format($items->sum(fn (array $item) => (float) $item['line_total']), 2, '.', ''),
+            'count' => $availableItems->sum('quantity'),
+            'subtotal' => number_format($availableItems->sum(fn (array $item) => (float) $item['line_total']), 2, '.', ''),
         ];
     }
 }

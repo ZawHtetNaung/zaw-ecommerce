@@ -11,7 +11,9 @@ use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\MeasurementController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\SeoController;
 use App\Http\Controllers\Api\SubCategoryController;
+use App\Http\Controllers\Api\SizeOptionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +32,7 @@ Route::get('/public/categories/{slug}', [CategoryController::class, 'publicShow'
 Route::get('/public/categories/{categorySlug}/sub-categories/{subCategorySlug}/products', [ProductController::class, 'publicIndexBySubCategory']);
 Route::get('/public/categories/{categorySlug}/sub-categories/{subCategorySlug}/products/{productSlug}', [ProductController::class, 'publicShow']);
 Route::get('/public/events', [EventController::class, 'publicIndex']);
+Route::get('/public/seo', [SeoController::class, 'publicShow']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/user', fn (\Illuminate\Http\Request $request) => $request->user());
@@ -49,9 +52,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::apiResource('/brands', BrandController::class);
     Route::apiResource('/colors', ColorController::class);
     Route::apiResource('/measurements', MeasurementController::class);
+    Route::apiResource('/size-options', SizeOptionController::class);
     Route::apiResource('/products', ProductController::class);
     Route::apiResource('/events', EventController::class);
     Route::apiResource('/banners', BannerController::class);
     Route::post('/banners/reorder', [BannerController::class, 'reorder']);
+    Route::get('/seo', [SeoController::class, 'index']);
+    Route::put('/seo/{seoPage}', [SeoController::class, 'update']);
+    Route::put('/seo-robots', [SeoController::class, 'updateRobots']);
     Route::post('/logout', [AuthController::class, 'logout']);
 });

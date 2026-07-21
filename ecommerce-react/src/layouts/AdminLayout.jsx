@@ -26,6 +26,7 @@ import {
   cilResizeBoth,
   cilSpeedometer,
   cilTag,
+  cilSearch,
 } from '@coreui/icons';
 import CIcon from '@coreui/icons-react';
 import { useAuth } from '../context/AuthContext';
@@ -90,6 +91,16 @@ export default function AdminLayout() {
           <CNavItem>
             <CNavLink as={NavLink} to="/dashboard/banners">
               <CIcon customClassName="nav-icon" icon={cilImage} /> Banners
+            </CNavLink>
+          </CNavItem>
+          <CNavItem>
+            <CNavLink as={NavLink} to="/dashboard/size-options">
+              <CIcon customClassName="nav-icon" icon={cilResizeBoth} /> Size Options
+            </CNavLink>
+          </CNavItem>
+          <CNavItem>
+            <CNavLink as={NavLink} to="/dashboard/seo">
+              <CIcon customClassName="nav-icon" icon={cilSearch} /> SEO
             </CNavLink>
           </CNavItem>
           <CNavGroup toggler={<><CIcon customClassName="nav-icon" icon={cilBasket} /> Products</>}>

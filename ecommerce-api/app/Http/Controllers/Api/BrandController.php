@@ -17,7 +17,7 @@ class BrandController extends Controller
 
         return response()->json(
             Brand::query()
-                ->select(['id', 'name', 'slug', 'image_path', 'source_url', 'is_active'])
+                ->select(['id', 'name', 'slug', 'image_path', 'image_alt_text', 'source_url', 'is_active'])
                 ->where('is_active', true)
                 ->whereHas('products', $activeProducts)
                 ->withCount(['products as products_count' => $activeProducts])
@@ -38,6 +38,7 @@ class BrandController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:brands,name'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -70,6 +71,7 @@ class BrandController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')->ignore($brand->id)],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -84,6 +86,7 @@ class BrandController extends Controller
         $updateData = [
             'name' => $validated['name'],
             'slug' => $newSlug,
+            'image_alt_text' => $validated['image_alt_text'] ?? null,
             'is_active' => $validated['is_active'] ?? $brand->is_active,
         ];
 

@@ -27,6 +27,7 @@ class Banner extends Model
         'button_height',
         'button_text_size',
         'image_path',
+        'image_alt_text',
         'is_active',
         'sort_order',
     ];

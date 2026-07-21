@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
+import RichTextEditor from './RichTextEditor';
 import {
   CAlert,
   CButton,
@@ -12,6 +13,7 @@ import {
   CFormCheck,
   CFormInput,
   CFormSelect,
+  CFormSwitch,
   CFormTextarea,
   CRow,
 } from '@coreui/react';
@@ -21,11 +23,13 @@ import {
   fetchBrands,
   fetchColors,
   fetchMeasurements,
+  fetchSizeOptions,
   fetchProduct,
   fetchSubCategories,
   fetchEvents,
   updateProduct,
 } from '../api/client';
+import { isProductInStock } from '../utils/productStock';
 
 const initialForm = {
   category_id: '',
@@ -33,13 +37,25 @@ const initialForm = {
   brand_id: '',
   event_id: '',
   name: '',
+  product_type: 'furniture',
+  selling_method: 'per_item',
+  physical_length: '', physical_width: '', physical_height: '', physical_weight: '', dimension_unit: 'cm', weight_unit: 'kg',
+  flooring: { piece_length: '', piece_width: '', thickness: '', coverage_per_box: '', pieces_per_box: '', minimum_order: '', waste_percentage: '10' },
+  wallpaper: { roll_width: '', roll_length: '', coverage_per_roll: '', pattern_repeat: '', match_type: 'free' },
   price: '',
   discount_price: '',
-  stock: '',
+  is_in_stock: true,
+  stock: '1',
   description: '',
+  short_description: '',
+  seo_title: '',
+  seo_description: '',
+  faqs: [],
   images: [],
   color_ids: [],
   measurement_ids: [],
+  measurement_values: {},
+  size_option_ids: [],
   is_active: true,
 };
 
@@ -70,6 +86,7 @@ export default function ProductForm({ productId = null }) {
   const [events, setEvents] = useState([]);
   const [colors, setColors] = useState([]);
   const [measurements, setMeasurements] = useState([]);
+  const [sizeOptions, setSizeOptions] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,6 +95,7 @@ export default function ProductForm({ productId = null }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [existingImages, setExistingImages] = useState([]);
   const [removeImageIds, setRemoveImageIds] = useState([]);
+  const [newImageAltTexts, setNewImageAltTexts] = useState([]);
 
   const isEdit = Boolean(productId);
   const selectedEvent = events.find((eventItem) => String(eventItem.id) === String(form.event_id));
@@ -97,12 +115,13 @@ export default function ProductForm({ productId = null }) {
   useEffect(() => {
     async function loadFormData() {
       try {
-        const [categoriesData, subCategoriesData, brandsData, colorsData, measurementsData, eventsData] = await Promise.all([
+        const [categoriesData, subCategoriesData, brandsData, colorsData, measurementsData, sizeOptionsData, eventsData] = await Promise.all([
           fetchCategories(),
           fetchSubCategories(),
           fetchBrands(),
           fetchColors(),
           fetchMeasurements(),
+          fetchSizeOptions(),
           fetchEvents(),
         ]);
 
@@ -113,25 +132,42 @@ export default function ProductForm({ productId = null }) {
         setBrands(Array.isArray(brandsData) ? brandsData : []);
         setColors(Array.isArray(colorsData) ? colorsData : []);
         setMeasurements(Array.isArray(measurementsData) ? measurementsData : []);
+        setSizeOptions(Array.isArray(sizeOptionsData) ? sizeOptionsData : []);
         setEvents(Array.isArray(eventsData) ? eventsData : []);
 
         if (isEdit) {
           const product = await fetchProduct(productId);
+          const productIsInStock = isProductInStock(product);
           setForm({
             category_id: String(product.category_id),
             sub_category_id: String(product.sub_category_id || ''),
             brand_id: product.brand_id ? String(product.brand_id) : '',
             event_id: product.event_id ? String(product.event_id) : '',
             name: product.name,
+            product_type: product.product_type || 'furniture', selling_method: product.selling_method || 'per_item',
+            physical_length: product.physical_length || '', physical_width: product.physical_width || '', physical_height: product.physical_height || '', physical_weight: product.physical_weight || '',
+            dimension_unit: product.dimension_unit || 'cm', weight_unit: product.weight_unit || 'kg',
+            flooring: { ...initialForm.flooring, ...(product.flooring_detail || {}) },
+            wallpaper: { ...initialForm.wallpaper, ...(product.wallpaper_detail || {}) },
             price: String(product.price),
             discount_price: product.discount_price ? String(product.discount_price) : '',
-            stock: String(product.stock),
+            is_in_stock: productIsInStock,
+            stock: productIsInStock ? String(Math.max(1, Number(product.stock) || 1)) : '0',
             description: product.description || '',
+            short_description: product.short_description || '',
+            seo_title: product.seo_title || '',
+            seo_description: product.seo_description || '',
+            faqs: Array.isArray(product.faqs) ? product.faqs.map((faq) => ({ question: faq.question || '', answer: faq.answer || '' })) : [],
             images: [],
             color_ids: Array.isArray(product.colors) ? product.colors.map((color) => String(color.id)) : [],
             measurement_ids: Array.isArray(product.measurements)
               ? product.measurements.map((measurement) => String(measurement.id))
               : [],
+            measurement_values: Array.isArray(product.measurements) ? Object.fromEntries(product.measurements.map((measurement) => [String(measurement.id), {
+              value: measurement.pivot?.value ?? measurement.value ?? '',
+              unit: measurement.pivot?.unit ?? measurement.unit ?? '',
+            }])) : {},
+            size_option_ids: Array.isArray(product.size_options) ? product.size_options.map((option) => String(option.id)) : [],
             is_active: product.is_active,
           });
           setExistingImages(Array.isArray(product.images) ? product.images : []);
@@ -175,6 +211,16 @@ export default function ProductForm({ productId = null }) {
         ...prev,
         [name]: type === 'checkbox' ? checked : value,
       };
+      if (name === 'is_in_stock') {
+        next.stock = checked ? String(Math.max(1, Number(prev.stock) || 1)) : '0';
+      }
+
+      if (name === 'stock') {
+        next.stock = value === '' ? '' : String(Math.max(1, Math.floor(Number(value) || 1)));
+      }
+      if (name === 'product_type') {
+        next.selling_method = value === 'flooring' ? 'unspecified' : value === 'wallpaper' ? 'per_roll' : 'per_item';
+      }
 
       if (name === 'event_id') {
         next.discount_price = '';
@@ -196,6 +242,7 @@ export default function ProductForm({ productId = null }) {
     }
 
     setForm((prev) => ({ ...prev, images: [...prev.images, ...imageFiles].slice(0, 8) }));
+    setNewImageAltTexts((prev) => [...prev, ...imageFiles.map(() => '')].slice(0, 8));
   }
 
   function onImageInputChange(event) {
@@ -214,6 +261,7 @@ export default function ProductForm({ productId = null }) {
       ...prev,
       images: prev.images.filter((_, index) => index !== indexToRemove),
     }));
+    setNewImageAltTexts((prev) => prev.filter((_, index) => index !== indexToRemove));
   }
 
   function toggleExistingImage(imageId) {
@@ -233,6 +281,11 @@ export default function ProductForm({ productId = null }) {
     payload.append('sub_category_id', String(Number(form.sub_category_id)));
     payload.append('brand_id', form.brand_id ? String(Number(form.brand_id)) : '');
     payload.append('name', form.name);
+    payload.append('product_type', form.product_type);
+    payload.append('selling_method', form.selling_method);
+    ['physical_length', 'physical_width', 'physical_height', 'physical_weight', 'dimension_unit', 'weight_unit'].forEach((field) => payload.append(field, form[field] || ''));
+    if (form.product_type === 'flooring') Object.entries(form.flooring).forEach(([field, value]) => payload.append(`flooring[${field}]`, value ?? ''));
+    if (form.product_type === 'wallpaper') Object.entries(form.wallpaper).forEach(([field, value]) => payload.append(`wallpaper[${field}]`, value ?? ''));
     payload.append('price', String(Number(form.price)));
     if (form.event_id) {
       payload.append('event_id', String(Number(form.event_id)));
@@ -240,24 +293,46 @@ export default function ProductForm({ productId = null }) {
     if (form.discount_price && !form.event_id) {
       payload.append('discount_price', String(Number(form.discount_price)));
     }
-    payload.append('stock', String(Number(form.stock)));
+    const normalizedStock = form.is_in_stock ? Math.max(1, Math.floor(Number(form.stock) || 1)) : 0;
+    payload.append('is_in_stock', form.is_in_stock ? '1' : '0');
+    payload.append('stock', String(normalizedStock));
     payload.append('description', form.description || '');
+    payload.append('short_description', form.short_description || '');
+    payload.append('seo_title', form.seo_title || '');
+    payload.append('seo_description', form.seo_description || '');
     payload.append('is_active', form.is_active ? '1' : '0');
     form.images.forEach((file) => payload.append('images[]', file));
+    newImageAltTexts.forEach((altText) => payload.append('image_alt_texts[]', altText));
+    existingImages.forEach((image) => payload.append(`existing_image_alt_texts[${image.id}]`, image.alt_text || ''));
+    form.faqs.forEach((faq, index) => {
+      if (faq.question.trim() && faq.answer.trim()) {
+        payload.append(`faqs[${index}][question]`, faq.question.trim());
+        payload.append(`faqs[${index}][answer]`, faq.answer.trim());
+      }
+    });
     form.color_ids.forEach((id) => payload.append('color_ids[]', id));
     form.measurement_ids.forEach((id) => payload.append('measurement_ids[]', id));
+    form.measurement_ids.forEach((id) => {
+      payload.append(`measurement_values[${id}][value]`, form.measurement_values[id]?.value ?? '');
+      payload.append(`measurement_values[${id}][unit]`, form.measurement_values[id]?.unit ?? '');
+    });
+    form.size_option_ids.forEach((id) => payload.append('size_option_ids[]', id));
     removeImageIds.forEach((id) => payload.append('remove_image_ids[]', String(id)));
 
     try {
       if (isEdit) {
         await updateProduct(productId, payload);
-        setMessage('Product updated successfully.');
       } else {
         await createProduct(payload);
-        setMessage('Product created successfully.');
       }
 
-      navigate('/dashboard/products/list');
+      navigate('/dashboard/products/list', {
+        state: {
+          successMessage: isEdit
+            ? `${form.name} updated successfully.`
+            : `${form.name} created successfully.`,
+        },
+      });
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Unable to save product.');
     } finally {
@@ -334,6 +409,14 @@ export default function ProductForm({ productId = null }) {
             <CCol md={6} className="mb-3">
               <CFormInput label="Name" name="name" value={form.name} onChange={onInputChange} required />
             </CCol>
+            <CCol md={3} className="mb-3"><CFormSelect label="Product Type" name="product_type" value={form.product_type} onChange={onInputChange}><option value="furniture">Furniture</option><option value="flooring">Flooring</option><option value="wallpaper">Wallpaper</option></CFormSelect></CCol>
+            <CCol md={3} className="mb-3"><CFormSelect label="Selling Method" name="selling_method" value={form.selling_method} onChange={onInputChange}><option value="unspecified">Needs review</option><option value="per_item">Per item</option><option value="per_square_meter">Per m²</option><option value="per_linear_meter">Per linear metre</option><option value="per_roll">Per roll</option><option value="per_box">Per box</option></CFormSelect></CCol>
+            {['length', 'width', 'height'].map((field) => <CCol md={3} className="mb-3" key={field}><CFormInput label={`Shipping ${field}`} name={`physical_${field}`} type="number" min="0" step="0.001" value={form[`physical_${field}`]} onChange={onInputChange} /></CCol>)}
+            <CCol md={3} className="mb-3"><CFormSelect label="Dimension Unit" name="dimension_unit" value={form.dimension_unit} onChange={onInputChange}><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></CFormSelect></CCol>
+            <CCol md={3} className="mb-3"><CFormInput label="Physical Weight" name="physical_weight" type="number" min="0" step="0.001" value={form.physical_weight} onChange={onInputChange} /></CCol>
+            <CCol md={3} className="mb-3"><CFormSelect label="Weight Unit" name="weight_unit" value={form.weight_unit} onChange={onInputChange}><option value="g">g</option><option value="kg">kg</option></CFormSelect></CCol>
+            {form.product_type === 'flooring' && <CCol xs={12} className="mb-3"><CCard><CCardHeader>Flooring Settings</CCardHeader><CCardBody><CRow>{[['piece_length','Piece Length (cm)'],['piece_width','Piece Width (cm)'],['thickness','Thickness (cm)'],['coverage_per_box','Coverage per Box (m²)'],['pieces_per_box','Pieces per Box'],['minimum_order','Minimum Order'],['waste_percentage','Waste %']].map(([field,label]) => <CCol md={4} className="mb-3" key={field}><CFormInput label={label} type="number" min="0" step={field === 'pieces_per_box' ? '1' : '0.001'} value={form.flooring[field] ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, flooring: { ...prev.flooring, [field]: event.target.value } }))} /></CCol>)}</CRow></CCardBody></CCard></CCol>}
+            {form.product_type === 'wallpaper' && <CCol xs={12} className="mb-3"><CCard><CCardHeader>Wallpaper Settings</CCardHeader><CCardBody><CRow>{[['roll_width','Roll Width (cm)'],['roll_length','Roll Length (cm)'],['coverage_per_roll','Coverage per Roll (m²)'],['pattern_repeat','Pattern Repeat (cm)']].map(([field,label]) => <CCol md={4} className="mb-3" key={field}><CFormInput label={label} type="number" min="0" step="0.001" value={form.wallpaper[field] ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, wallpaper: { ...prev.wallpaper, [field]: event.target.value } }))} /></CCol>)}<CCol md={4}><CFormSelect label="Match Type" value={form.wallpaper.match_type || 'free'} onChange={(event) => setForm((prev) => ({ ...prev, wallpaper: { ...prev.wallpaper, match_type: event.target.value } }))}><option value="free">Free match</option><option value="straight">Straight match</option><option value="drop">Drop match</option><option value="reverse">Reverse hang</option></CFormSelect></CCol></CRow></CCardBody></CCard></CCol>}
             <CCol md={6} className="mb-3">
               <CFormInput label="Price" name="price" type="number" min="0" step="0.01" value={form.price} onChange={onInputChange} required />
             </CCol>
@@ -350,8 +433,28 @@ export default function ProductForm({ productId = null }) {
                 placeholder={form.event_id ? 'Disabled when event is selected' : ''}
               />
             </CCol>
-            <CCol md={6} className="mb-3">
-              <CFormInput label="Stock" name="stock" type="number" min="0" value={form.stock} onChange={onInputChange} required />
+            <CCol md={3} className="mb-3">
+              <label className="form-label d-block">Stock Availability</label>
+              <CFormSwitch
+                label={form.is_in_stock ? 'In stock' : 'Out of stock'}
+                name="is_in_stock"
+                checked={form.is_in_stock}
+                onChange={onInputChange}
+              />
+            </CCol>
+            <CCol md={3} className="mb-3">
+              <CFormInput
+                label="Stock Quantity"
+                name="stock"
+                type="number"
+                min="1"
+                step="1"
+                value={form.stock}
+                onChange={onInputChange}
+                disabled={!form.is_in_stock}
+                required={form.is_in_stock}
+                text={form.is_in_stock ? 'At least one item is required.' : 'Quantity is set to zero while stock is off.'}
+              />
             </CCol>
             <CCol md={6} className="mb-3">
               <label className="form-label">Colors (multiple)</label>
@@ -389,11 +492,36 @@ export default function ProductForm({ productId = null }) {
                     : null;
                 }).filter(Boolean)}
                 onChange={(selected) => {
+                  const selectedIds = selected ? selected.map((item) => item.value) : [];
                   setForm((prev) => ({
                     ...prev,
-                    measurement_ids: selected ? selected.map((item) => item.value) : [],
+                    measurement_ids: selectedIds,
+                    measurement_values: Object.fromEntries(selectedIds.map((id) => {
+                      const measurement = measurements.find((item) => String(item.id) === id);
+                      return [id, prev.measurement_values[id] || { value: measurement?.value || '', unit: measurement?.unit || '' }];
+                    })),
                   }));
                 }}
+                classNamePrefix="select"
+              />
+              {form.measurement_ids.map((id) => {
+                const measurement = measurements.find((item) => String(item.id) === String(id));
+                return <div className="d-flex gap-2 align-items-end mt-2" key={`measurement-value-${id}`}>
+                  <CFormInput label={`${measurement?.name || 'Measurement'} value`} type="number" min="0" step="0.001" value={form.measurement_values[id]?.value ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, measurement_values: { ...prev.measurement_values, [id]: { ...prev.measurement_values[id], value: event.target.value } } }))} />
+                  <CFormInput label="Unit" value={form.measurement_values[id]?.unit ?? measurement?.unit ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, measurement_values: { ...prev.measurement_values, [id]: { ...prev.measurement_values[id], unit: event.target.value } } }))} />
+                </div>;
+              })}
+            </CCol>
+            <CCol md={6} className="mb-3">
+              <label className="form-label">Size Options (multiple)</label>
+              <Select
+                isMulti
+                options={sizeOptions.map((option) => ({ value: String(option.id), label: option.name }))}
+                value={form.size_option_ids.map((id) => {
+                  const option = sizeOptions.find((item) => String(item.id) === String(id));
+                  return option ? { value: String(option.id), label: option.name } : null;
+                }).filter(Boolean)}
+                onChange={(selected) => setForm((prev) => ({ ...prev, size_option_ids: selected ? selected.map((item) => item.value) : [] }))}
                 classNamePrefix="select"
               />
             </CCol>
@@ -420,7 +548,40 @@ export default function ProductForm({ productId = null }) {
               <CFormCheck label="Active" name="is_active" checked={form.is_active} onChange={onInputChange} />
             </CCol>
             <CCol xs={12} className="mb-3">
-              <CFormTextarea label="Description" name="description" rows={3} value={form.description} onChange={onInputChange} />
+              <RichTextEditor label="Short Description" value={form.short_description} minHeight={120} onChange={(short_description) => setForm((prev) => ({ ...prev, short_description }))} />
+            </CCol>
+            <CCol xs={12} className="mb-3">
+              <RichTextEditor label="Full Description" value={form.description} onChange={(description) => setForm((prev) => ({ ...prev, description }))} />
+            </CCol>
+            <CCol md={6} className="mb-3">
+              <CFormInput label="Meta Title" name="seo_title" maxLength={255} value={form.seo_title} onChange={onInputChange} />
+            </CCol>
+            <CCol md={6} className="mb-3">
+              <CFormTextarea label="Meta Description" name="seo_description" rows={3} maxLength={1000} value={form.seo_description} onChange={onInputChange} />
+            </CCol>
+            <CCol xs={12} className="mb-3">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <label className="form-label mb-0">Product Questions &amp; Answers</label>
+                <CButton type="button" size="sm" variant="outline" onClick={() => setForm((prev) => ({ ...prev, faqs: [...prev.faqs, { question: '', answer: '' }] }))}>Add Q&amp;A</CButton>
+              </div>
+              {form.faqs.length === 0 && <p className="text-body-secondary small">No questions added.</p>}
+              {form.faqs.map((faq, index) => (
+                <div className="border rounded p-3 mb-2" key={`faq-${index}`}>
+                  <CFormInput
+                    className="mb-2"
+                    label={`Q${index + 1}`}
+                    value={faq.question}
+                    onChange={(event) => setForm((prev) => ({ ...prev, faqs: prev.faqs.map((item, itemIndex) => itemIndex === index ? { ...item, question: event.target.value } : item) }))}
+                  />
+                  <CFormTextarea
+                    label={`A${index + 1}`}
+                    rows={2}
+                    value={faq.answer}
+                    onChange={(event) => setForm((prev) => ({ ...prev, faqs: prev.faqs.map((item, itemIndex) => itemIndex === index ? { ...item, answer: event.target.value } : item) }))}
+                  />
+                  <CButton type="button" color="danger" variant="outline" size="sm" className="mt-2" onClick={() => setForm((prev) => ({ ...prev, faqs: prev.faqs.filter((_, itemIndex) => itemIndex !== index) }))}>Remove Q&amp;A</CButton>
+                </div>
+              ))}
             </CCol>
           </CRow>
 
@@ -451,7 +612,14 @@ export default function ProductForm({ productId = null }) {
               <div className="thumb-grid">
                 {existingImages.map((image) => (
                   <div key={image.id} className="thumb-item">
-                    <img src={image.url} alt="Product" className="product-thumb" />
+                    <img src={image.url} alt={image.alt_text || form.name} className="product-thumb" />
+                    <CFormInput
+                      className="mt-2"
+                      aria-label="Image alt text"
+                      placeholder="Image alt text"
+                      value={image.alt_text || ''}
+                      onChange={(event) => setExistingImages((items) => items.map((item) => item.id === image.id ? { ...item, alt_text: event.target.value } : item))}
+                    />
                     <button
                       type="button"
                       className={`thumb-remove ${removeImageIds.includes(image.id) ? 'thumb-remove-active' : ''}`}
@@ -472,6 +640,13 @@ export default function ProductForm({ productId = null }) {
                 {newImagePreviews.map((item, index) => (
                   <div key={`${item.file.name}-${index}`} className="thumb-item">
                     <img src={item.url} alt={item.file.name} className="product-thumb" />
+                    <CFormInput
+                      className="mt-2"
+                      aria-label="Image alt text"
+                      placeholder="Image alt text"
+                      value={newImageAltTexts[index] || ''}
+                      onChange={(event) => setNewImageAltTexts((items) => items.map((value, itemIndex) => itemIndex === index ? event.target.value : value))}
+                    />
                     <button type="button" className="thumb-remove" onClick={() => removeNewImage(index)}>Remove</button>
                   </div>
                 ))}

@@ -10,6 +10,7 @@ import {
 } from '../api/client';
 import StorefrontHeader from '../components/StorefrontHeader';
 import { useAuth } from '../context/AuthContext';
+import { isProductInStock } from '../utils/productStock';
 
 const rooms = [
   {
@@ -547,7 +548,7 @@ export default function HomePage() {
                     aria-label={`Open ${category.name}`}
                   >
                     {imageUrl ? (
-                      <img src={imageUrl} alt={category.name} />
+                      <img src={imageUrl} alt={category.image_alt_text || category.name} />
                     ) : (
                       <div className="category-chip-placeholder" />
                     )}
@@ -572,7 +573,7 @@ export default function HomePage() {
         <div className="banner-slider-shell">
           <div className="banner-slider-stage">
             {activeBannerImage ? (
-              <img className="banner-slide-media" src={activeBannerImage} alt={activeBanner?.title || 'Banner'} />
+              <img className="banner-slide-media" src={activeBannerImage} alt={activeBanner?.image_alt_text || activeBanner?.title || 'Banner'} />
             ) : (
               <div className="banner-slide-placeholder" />
             )}
@@ -852,6 +853,7 @@ export default function HomePage() {
               const imageUrl = resolveAssetUrl(apiBaseUrl, product.image_url, product.image_path);
               const productPath = `/categories/${product.category?.slug}/sub-categories/${product.sub_category?.slug}/products/${product.slug}`;
               const hasDiscount = Number(product.discount_price || 0) > 0;
+              const inStock = isProductInStock(product);
 
               return (
                 <Link key={product.id} to={productPath} className="home-product-card">
@@ -869,7 +871,7 @@ export default function HomePage() {
                       </strong>
                     </div>
                     <div className="home-product-card-footer">
-                      <span>{Number(product.stock || 0) > 0 ? 'In stock' : 'Out of stock'}</span>
+                      <span>{inStock ? 'In stock' : 'Out of stock'}</span>
                       <strong>View product</strong>
                     </div>
                   </div>

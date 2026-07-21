@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPublicCategory } from '../api/client';
 import StorefrontHeader from '../components/StorefrontHeader';
+import RichTextContent from '../components/RichTextContent';
 
 export default function PublicCategoryPage() {
   const { categorySlug } = useParams();
@@ -81,9 +82,7 @@ export default function PublicCategoryPage() {
               <div className="catalog-hero-copy">
                 <span className="catalog-eyebrow">MessaraLiving Collection</span>
                 <h1>{category.name}</h1>
-                <p className="catalog-hero-description">
-                  {category.description || `Explore the ${category.name} collection and jump into the sub categories that best match the room, finish, and style you have in mind.`}
-                </p>
+                {category.description ? <RichTextContent className="catalog-hero-description" html={category.description} /> : <p className="catalog-hero-description">Explore the {category.name} collection and jump into the sub categories that best match the room, finish, and style you have in mind.</p>}
                 <div className="catalog-stat-grid">
                   <div className="catalog-stat-card">
                     <strong>{activeSubCategoryCount}</strong>
@@ -97,7 +96,7 @@ export default function PublicCategoryPage() {
               </div>
               <div className="catalog-hero-media">
                 {heroImage ? (
-                  <img src={heroImage} alt={category.name} />
+                  <img src={heroImage} alt={category.image_alt_text || category.name} />
                 ) : (
                   <div className="catalog-hero-placeholder">{category.name}</div>
                 )}
@@ -128,7 +127,7 @@ export default function PublicCategoryPage() {
                       >
                         <div className="subcategory-card-media">
                           {imageUrl ? (
-                            <img src={imageUrl} alt={subCategory.name} />
+                            <img src={imageUrl} alt={subCategory.image_alt_text || subCategory.name} />
                           ) : (
                             <div className="subcategory-card-placeholder" />
                           )}

@@ -15,7 +15,7 @@ class CategoryController extends Controller
     {
         return response()->json(
             Category::query()
-                ->select(['id', 'name', 'slug', 'image_path'])
+                ->select(['id', 'name', 'slug', 'image_path', 'image_alt_text'])
                 ->where('is_active', true)
                 ->orderBy('id')
                 ->get()
@@ -25,12 +25,12 @@ class CategoryController extends Controller
     public function publicShow(string $slug)
     {
         $category = Category::query()
-            ->select(['id', 'name', 'slug', 'description', 'image_path'])
+            ->select(['id', 'name', 'slug', 'description', 'image_path', 'image_alt_text'])
             ->where('slug', $slug)
             ->where('is_active', true)
             ->with([
                 'subCategories' => fn ($query) => $query
-                    ->select(['id', 'category_id', 'name', 'slug', 'description', 'image_path'])
+                    ->select(['id', 'category_id', 'name', 'slug', 'description', 'image_path', 'image_alt_text'])
                     ->where('is_active', true)
                     ->withCount([
                         'products as active_products_count' => fn ($productQuery) => $productQuery->where('is_active', true),
@@ -61,6 +61,7 @@ class CategoryController extends Controller
             'name' => ['required', 'string', 'max:255', 'unique:categories,name'],
             'description' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -94,6 +95,7 @@ class CategoryController extends Controller
             'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')->ignore($category->id)],
             'description' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -109,6 +111,7 @@ class CategoryController extends Controller
             'name' => $validated['name'],
             'slug' => $newSlug,
             'description' => $validated['description'] ?? null,
+            'image_alt_text' => $validated['image_alt_text'] ?? null,
             'is_active' => $validated['is_active'] ?? $category->is_active,
         ];
 

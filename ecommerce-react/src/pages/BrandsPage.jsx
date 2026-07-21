@@ -19,6 +19,7 @@ import { createBrand, deleteBrand, fetchBrands, updateBrand } from '../api/clien
 const initialForm = {
   name: '',
   image: null,
+  image_alt_text: '',
   is_active: true,
 };
 
@@ -73,6 +74,7 @@ export default function BrandsPage() {
     setForm({
       name: brand.name,
       image: null,
+      image_alt_text: brand.image_alt_text || '',
       is_active: brand.is_active,
     });
     setCurrentImageUrl(brand.image_url || '');
@@ -95,6 +97,7 @@ export default function BrandsPage() {
     const payload = new FormData();
     payload.append('name', form.name);
     payload.append('is_active', form.is_active ? '1' : '0');
+    payload.append('image_alt_text', form.image_alt_text || '');
     if (form.image) payload.append('image', form.image);
 
     try {
@@ -193,6 +196,7 @@ export default function BrandsPage() {
                   )}
                 </div>
                 <input ref={fileInputRef} type="file" accept="image/*" className="d-none" onChange={onImageInputChange} />
+                <CFormInput className="mt-2" label="Image Alt Text" name="image_alt_text" value={form.image_alt_text} onChange={onInputChange} />
               </div>
               <div className="mb-3">
                 <CFormCheck label="Active" name="is_active" checked={form.is_active} onChange={onInputChange} />

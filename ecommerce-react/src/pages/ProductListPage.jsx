@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CModal, CModalBody, CModalFooter, CModalHeader, CModalTitle } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilPen, cilTrash } from '@coreui/icons';
 import AppDataTable from '../components/AppDataTable';
 import { deleteProduct, fetchProducts } from '../api/client';
+import { getProductStockQuantity, isProductInStock } from '../utils/productStock';
 
 function formatPrice(value) {
   const numberValue = Number(value || 0);
@@ -13,6 +14,7 @@ function formatPrice(value) {
 
 export default function ProductListPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -33,6 +35,12 @@ export default function ProductListPage() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (!location.state?.successMessage) return;
+    setMessage(location.state.successMessage);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.pathname, location.state, navigate]);
 
   async function onDelete(productId) {
     setError('');
@@ -109,7 +117,16 @@ export default function ProductListPage() {
           return `AED ${formatPrice(row.price)}`;
         },
       },
-      { name: 'Stock', selector: (row) => row.stock, sortable: true },
+      {
+        name: 'Stock',
+        selector: (row) => (isProductInStock(row) ? getProductStockQuantity(row) : -1),
+        sortable: true,
+        cell: (row) => (
+          <CBadge color={isProductInStock(row) ? 'success' : 'secondary'}>
+            {isProductInStock(row) ? `In stock (${Math.max(1, getProductStockQuantity(row))})` : 'Out of stock'}
+          </CBadge>
+        ),
+      },
       { name: 'Status', selector: (row) => (row.is_active ? 'Active' : 'Inactive'), sortable: true },
       {
         name: 'Actions',

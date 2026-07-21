@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\SeoController;
+
+Route::get('/robots.txt', [SeoController::class, 'robots']);
 
 Route::get('/', function () {
     return response()->json([

@@ -4,6 +4,7 @@ import CIcon from '@coreui/icons-react';
 import { cilCart, cilHeart } from '@coreui/icons';
 import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
+import { isProductInStock } from '../utils/productStock';
 
 function formatPrice(value) {
   return `AED ${Number(value || 0).toFixed(2)}`;
@@ -18,6 +19,7 @@ export default function StoreProductCard({ product }) {
   const [message, setMessage] = useState('');
   const favorite = isFavorite(product.id);
   const hasDiscount = Number(product.discount_price || 0) > 0;
+  const inStock = isProductInStock(product);
 
   async function runAuthenticatedAction(action, callback) {
     if (!isAuthenticated) {
@@ -63,11 +65,11 @@ export default function StoreProductCard({ product }) {
           <button
             type="button"
             className="store-add-cart"
-            disabled={busyAction === 'cart' || Number(product.stock || 0) < 1}
+            disabled={busyAction === 'cart' || !inStock}
             onClick={() => runAuthenticatedAction('cart', () => addToCart(product.id))}
           >
             <CIcon icon={cilCart} />
-            <span>{Number(product.stock || 0) > 0 ? 'Add to cart' : 'Out of stock'}</span>
+            <span>{inStock ? 'Add to cart' : 'Out of stock'}</span>
           </button>
         </div>
         {message && <span className="store-card-message">{message}</span>}

@@ -12,8 +12,12 @@ class Color extends Model
     use HasFactory;
 
     protected $fillable = [
+        'wordpress_term_id',
+        'source_taxonomy',
         'name',
+        'hex_code',
         'image_path',
+        'image_alt_text',
         'is_active',
     ];
 

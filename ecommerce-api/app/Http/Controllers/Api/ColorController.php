@@ -20,12 +20,15 @@ class ColorController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:colors,name'],
+            'name' => ['required', 'string', 'max:255'],
+            'hex_code' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $validated['is_active'] = $validated['is_active'] ?? true;
+        $validated['hex_code'] = isset($validated['hex_code']) ? strtoupper($validated['hex_code']) : null;
         if ($request->hasFile('image')) {
             $validated['image_path'] = $request->file('image')->store('colors', 'public');
         }
@@ -46,13 +49,17 @@ class ColorController extends Controller
     public function update(Request $request, Color $color)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('colors', 'name')->ignore($color->id)],
+            'name' => ['required', 'string', 'max:255'],
+            'hex_code' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $updateData = [
             'name' => $validated['name'],
+            'hex_code' => isset($validated['hex_code']) ? strtoupper($validated['hex_code']) : null,
+            'image_alt_text' => $validated['image_alt_text'] ?? null,
             'is_active' => $validated['is_active'] ?? $color->is_active,
         ];
 

@@ -15,7 +15,7 @@ class SubCategoryController extends Controller
     {
         return response()->json(
             SubCategory::query()
-                ->select(['id', 'category_id', 'name', 'slug', 'description', 'image_path', 'source_url', 'is_active'])
+                ->select(['id', 'category_id', 'name', 'slug', 'description', 'image_path', 'image_alt_text', 'source_url', 'is_active'])
                 ->where('is_active', true)
                 ->whereHas('category', fn ($query) => $query->where('is_active', true))
                 ->with('category:id,name,slug')
@@ -44,6 +44,7 @@ class SubCategoryController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -86,6 +87,7 @@ class SubCategoryController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'image_alt_text' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -110,6 +112,7 @@ class SubCategoryController extends Controller
             'name' => $validated['name'],
             'slug' => $newSlug,
             'description' => $validated['description'] ?? null,
+            'image_alt_text' => $validated['image_alt_text'] ?? null,
             'is_active' => $validated['is_active'] ?? $subCategory->is_active,
         ];
 

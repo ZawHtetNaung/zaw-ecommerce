@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CSpinner } from '@coreui/react';
 import { fetchProduct } from '../api/client';
+import { getProductPurchaseLimit, isProductInStock } from '../utils/productStock';
 
 function formatPrice(value) {
   const numberValue = Number(value || 0);
@@ -123,7 +124,7 @@ export default function ProductDetailPage() {
                 <>AED {formatPrice(product.price)}</>
               )}
             </p>
-            <p className="mb-1"><strong>Stock:</strong> {product.stock}</p>
+            <p className="mb-1"><strong>Stock:</strong> {isProductInStock(product) ? `In stock (${getProductPurchaseLimit(product)})` : 'Out of stock'}</p>
             <p className="mb-2"><strong>Status:</strong> <CBadge color={product.is_active ? 'success' : 'secondary'}>{product.is_active ? 'Active' : 'Inactive'}</CBadge></p>
             <p className="mb-0"><strong>Description:</strong></p>
             <p className="text-body-secondary">{product.description || 'No description'}</p>

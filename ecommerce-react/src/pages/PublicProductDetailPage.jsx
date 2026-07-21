@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchPublicProduct } from '../api/client';
 import StorefrontHeader from '../components/StorefrontHeader';
+import RichTextContent from '../components/RichTextContent';
 import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
+import { getProductPurchaseLimit, isProductInStock } from '../utils/productStock';
 
 function formatPrice(value) {
   const numberValue = Number(value || 0);
@@ -36,6 +38,7 @@ export default function PublicProductDetailPage() {
         if (!cancelled) {
           setProduct(data);
           setActiveIndex(0);
+          setQuantity(1);
         }
       } catch (requestError) {
         if (!cancelled) {
@@ -68,7 +71,9 @@ export default function PublicProductDetailPage() {
       document.head.appendChild(description);
     }
     const previousDescription = description.content;
-    description.content = product.seo_description || product.short_description || product.description || '';
+    const shortDescription = (product.short_description || '').replace(/<[^>]*>/g, ' ');
+    const fallbackDescription = (product.description || '').replace(/<[^>]*>/g, ' ');
+    description.content = product.seo_description || shortDescription || fallbackDescription;
     return () => {
       document.title = previousTitle;
       if (created) description.remove();
@@ -78,11 +83,31 @@ export default function PublicProductDetailPage() {
 
   const resolvedCategorySlug = categorySlug || product?.category?.slug;
   const resolvedSubCategorySlug = subCategorySlug || product?.sub_category?.slug;
+  const inStock = isProductInStock(product);
+  const purchaseLimit = getProductPurchaseLimit(product);
+  const previousProduct = product?.navigation?.previous || null;
+  const nextProduct = product?.navigation?.next || null;
+  const allProductsPath = resolvedCategorySlug && resolvedSubCategorySlug
+    ? `/categories/${resolvedCategorySlug}/sub-categories/${resolvedSubCategorySlug}`
+    : resolvedCategorySlug
+      ? `/categories/${resolvedCategorySlug}`
+      : '/search';
+
+  function navigationProductPath(navigationProduct) {
+    if (resolvedCategorySlug && resolvedSubCategorySlug) {
+      return `/categories/${resolvedCategorySlug}/sub-categories/${resolvedSubCategorySlug}/products/${navigationProduct.slug}`;
+    }
+
+    return `/product/${navigationProduct.slug}`;
+  }
 
   const images = useMemo(() => {
     if (!product) return [];
-    if (Array.isArray(product.image_urls) && product.image_urls.length > 0) return product.image_urls;
-    if (product.image_url) return [product.image_url];
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      return product.images.map((image, index) => ({ id: image.id, url: image.url, alt: image.alt_text || `${product.name} ${index + 1}` }));
+    }
+    if (Array.isArray(product.image_urls) && product.image_urls.length > 0) return product.image_urls.map((url, index) => ({ url, alt: `${product.name} ${index + 1}` }));
+    if (product.image_url) return [{ url: product.image_url, alt: product.name }];
     return [];
   }, [product]);
 
@@ -94,6 +119,13 @@ export default function PublicProductDetailPage() {
   function showNext() {
     if (images.length === 0) return;
     setActiveIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  }
+
+  function selectColor(color) {
+    const productImageId = Number(color?.pivot?.product_image_id || 0);
+    if (!productImageId) return;
+    const imageIndex = images.findIndex((image) => Number(image.id) === productImageId);
+    if (imageIndex >= 0) setActiveIndex(imageIndex);
   }
 
   async function runProductAction(type, callback) {
@@ -142,7 +174,7 @@ export default function PublicProductDetailPage() {
               <div className="public-product-gallery">
                 <div className="public-product-slider-box">
                   {images.length > 0 ? (
-                    <img src={images[activeIndex]} alt={product.name} className="public-product-main-image" />
+                    <img src={images[activeIndex].url} alt={images[activeIndex].alt} className="public-product-main-image" />
                   ) : (
                     <div className="catalog-hero-placeholder">No image</div>
                   )}
@@ -158,11 +190,11 @@ export default function PublicProductDetailPage() {
                     {images.map((image, index) => (
                       <button
                         type="button"
-                        key={`${image}-${index}`}
+                        key={`${image.url}-${index}`}
                         className={`public-thumb-button ${activeIndex === index ? 'public-thumb-button-active' : ''}`}
                         onClick={() => setActiveIndex(index)}
                       >
-                        <img src={image} alt={`${product.name} ${index + 1}`} className="product-thumb" />
+                        <img src={image.url} alt={image.alt} className="product-thumb" />
                       </button>
                     ))}
                   </div>
@@ -170,11 +202,74 @@ export default function PublicProductDetailPage() {
               </div>
 
               <div className="public-product-summary">
-                <span className="catalog-eyebrow">MessaraLiving Product</span>
-                <h1>{product.name}</h1>
-                <p className="catalog-hero-description">
-                  {product.description || `A clean and modern ${product.sub_category?.name?.toLowerCase() || 'product'} presentation with the key details kept easy to read.`}
-                </p>
+                <div className="public-product-navigation-row">
+                    <nav className="public-product-navigation" aria-label="Browse products">
+                      {previousProduct ? (
+                        <Link
+                          to={navigationProductPath(previousProduct)}
+                          className="public-product-navigation-button"
+                          aria-label={`Previous product: ${previousProduct.name}`}
+                          title={`Previous: ${previousProduct.name}`}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+                        </Link>
+                      ) : (
+                        <span className="public-product-navigation-button is-disabled" aria-hidden="true">
+                          <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" /></svg>
+                        </span>
+                      )}
+                      <Link
+                        to={allProductsPath}
+                        className="public-product-navigation-button"
+                        aria-label={`View all ${product.sub_category?.name || 'products'}`}
+                        title={`View all ${product.sub_category?.name || 'products'}`}
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true" className="public-product-grid-icon">
+                          <rect x="4" y="4" width="6" height="6" rx="1" />
+                          <rect x="14" y="4" width="6" height="6" rx="1" />
+                          <rect x="4" y="14" width="6" height="6" rx="1" />
+                          <rect x="14" y="14" width="6" height="6" rx="1" />
+                        </svg>
+                      </Link>
+                      {nextProduct ? (
+                        <Link
+                          to={navigationProductPath(nextProduct)}
+                          className="public-product-navigation-button"
+                          aria-label={`Next product: ${nextProduct.name}`}
+                          title={`Next: ${nextProduct.name}`}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+                        </Link>
+                      ) : (
+                        <span className="public-product-navigation-button is-disabled" aria-hidden="true">
+                          <svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg>
+                        </span>
+                      )}
+                    </nav>
+                </div>
+                <div className="public-product-heading-row">
+                    <h1>{product.name}</h1>
+                    {product.brand?.image_url && (
+                      <div
+                        className="public-product-brand-logo"
+                        tabIndex={0}
+                        aria-label={`Brand: ${product.brand.name}`}
+                      >
+                        <img
+                          src={product.brand.image_url}
+                          alt={product.brand.image_alt_text || `${product.brand.name} logo`}
+                        />
+                        <span className="public-product-brand-name">{product.brand.name}</span>
+                      </div>
+                    )}
+                </div>
+                {product.short_description ? (
+                  <RichTextContent className="catalog-hero-description" html={product.short_description} />
+                ) : product.description ? (
+                  <RichTextContent className="catalog-hero-description" html={product.description} />
+                ) : (
+                  <p className="catalog-hero-description">A clean and modern {product.sub_category?.name?.toLowerCase() || 'product'} presentation with the key details kept easy to read.</p>
+                )}
 
                 <div className="public-product-price-row">
                   {Number(product.discount_price || 0) > 0 ? (
@@ -191,18 +286,18 @@ export default function PublicProductDetailPage() {
                   <div className="public-quantity-control">
                     <span>Quantity</span>
                     <div>
-                      <button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))} disabled={quantity <= 1}>−</button>
+                      <button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))} disabled={!inStock || quantity <= 1}>−</button>
                       <strong>{quantity}</strong>
-                      <button type="button" onClick={() => setQuantity((current) => Math.min(Number(product.stock || 1), current + 1))} disabled={quantity >= Number(product.stock || 0)}>+</button>
+                      <button type="button" onClick={() => setQuantity((current) => Math.min(purchaseLimit, current + 1))} disabled={!inStock || quantity >= purchaseLimit}>+</button>
                     </div>
                   </div>
                   <button
                     type="button"
                     className="public-add-cart-button"
-                    disabled={actionBusy === 'cart' || Number(product.stock || 0) < 1}
+                    disabled={actionBusy === 'cart' || !inStock}
                     onClick={() => runProductAction('cart', () => addToCart(product.id, quantity))}
                   >
-                    {actionBusy === 'cart' ? 'Adding...' : Number(product.stock || 0) > 0 ? 'Add to cart' : 'Out of stock'}
+                    {actionBusy === 'cart' ? 'Adding...' : inStock ? 'Add to cart' : 'Out of stock'}
                   </button>
                   <button
                     type="button"
@@ -222,7 +317,7 @@ export default function PublicProductDetailPage() {
                   </div>
                   <div className="public-product-meta-card">
                     <span>Stock</span>
-                    <strong>{Number(product.stock || 0) > 0 ? `${product.stock} available` : 'Out of stock'}</strong>
+                    <strong>{inStock ? `${purchaseLimit} available` : 'Out of stock'}</strong>
                   </div>
                   <div className="public-product-meta-card">
                     <span>Category</span>
@@ -236,10 +331,13 @@ export default function PublicProductDetailPage() {
 
                 <div className="public-product-pill-row">
                   {(product.colors || []).map((color) => (
-                    <span key={color.id} className="public-product-pill">{color.name}</span>
+                    <button type="button" key={color.id} className="public-product-color" title={color.name} onClick={() => selectColor(color)}>
+                      {color.image_url ? <img src={color.image_url} alt={color.image_alt_text || color.name} /> : <span className="public-product-color-placeholder" style={color.hex_code ? { backgroundColor: color.hex_code } : undefined} />}
+                      <span className="public-product-color-name">{color.name}</span>
+                    </button>
                   ))}
-                  {(product.measurements || []).map((measurement) => (
-                    <span key={measurement.id} className="public-product-pill secondary">{measurement.name}</span>
+                  {(product.size_options || []).map((option) => (
+                    <span key={option.id} className="public-product-pill secondary">Size: {option.name}</span>
                   ))}
                 </div>
               </div>
@@ -256,7 +354,7 @@ export default function PublicProductDetailPage() {
               <div className="public-product-info-panels">
                 <article className="catalog-empty-panel">
                   <h3>Description</h3>
-                  <p>{product.description || 'No additional description has been added for this product yet.'}</p>
+                  {product.description ? <RichTextContent html={product.description} /> : <p>No additional description has been added for this product yet.</p>}
                 </article>
                 <article className="catalog-empty-panel">
                   <h3>Measurements</h3>
@@ -273,6 +371,30 @@ export default function PublicProductDetailPage() {
                     <p>No measurements added yet.</p>
                   )}
                 </article>
+              </div>
+            </section>
+            {Array.isArray(product.faqs) && product.faqs.length > 0 && (
+              <section className="catalog-section">
+                <div className="catalog-section-head"><div><h2>Questions &amp; Answers</h2></div></div>
+                <div className="public-product-info-panels">
+                  {product.faqs.map((faq, index) => (
+                    <article className="catalog-empty-panel" key={faq.id || index}>
+                      <h3>Q: {faq.question}</h3>
+                      <p>A: {faq.answer}</p>
+                    </article>
+                  ))}
+                </div>
+
+              </section>
+            )}
+            <section className="catalog-section">
+              <div className="public-product-meta-grid">
+                <div className="public-product-meta-card"><span>Product type</span><strong>{product.product_type ? product.product_type.charAt(0).toUpperCase() + product.product_type.slice(1) : 'Furniture'}</strong></div>
+                <div className="public-product-meta-card"><span>Sold</span><strong>{({ per_item: 'Per item', per_square_meter: 'Per m²', per_linear_meter: 'Per linear metre', per_roll: 'Per roll', per_box: 'Per box', unspecified: 'Unit to be confirmed' })[product.selling_method] || 'Unit to be confirmed'}</strong></div>
+                {product.physical_weight && <div className="public-product-meta-card"><span>Weight</span><strong>{product.physical_weight} {product.weight_unit}</strong></div>}
+                {product.flooring_detail?.coverage_per_box && <div className="public-product-meta-card"><span>Coverage per box</span><strong>{product.flooring_detail.coverage_per_box} m²</strong></div>}
+                {product.wallpaper_detail?.coverage_per_roll && <div className="public-product-meta-card"><span>Coverage per roll</span><strong>{product.wallpaper_detail.coverage_per_roll} m²</strong></div>}
+                {product.wallpaper_detail?.match_type && <div className="public-product-meta-card"><span>Pattern match</span><strong>{product.wallpaper_detail.match_type}</strong></div>}
               </div>
             </section>
           </>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPublicSubCategoryProducts } from '../api/client';
 import StorefrontHeader from '../components/StorefrontHeader';
+import RichTextContent from '../components/RichTextContent';
 import StoreProductCard from '../components/StoreProductCard';
 
 export default function PublicSubCategoryProductsPage() {
@@ -81,9 +82,7 @@ export default function PublicSubCategoryProductsPage() {
               <div className="catalog-hero-copy">
                 <span className="catalog-eyebrow">Sub Category Collection</span>
                 <h1>{subCategory?.name}</h1>
-                <p className="catalog-hero-description">
-                  {subCategory?.description || `Explore every product we currently have inside ${subCategory?.name?.toLowerCase() || 'this section'}.`} 
-                </p>
+                {subCategory?.description ? <RichTextContent className="catalog-hero-description" html={subCategory.description} /> : <p className="catalog-hero-description">Explore every product we currently have inside {subCategory?.name?.toLowerCase() || 'this section'}.</p>}
                 <div className="catalog-stat-grid">
                   <div className="catalog-stat-card">
                     <strong>{products.length}</strong>
@@ -97,10 +96,10 @@ export default function PublicSubCategoryProductsPage() {
               </div>
               <div className="product-hero-stack">
                 <div className="product-hero-card large">
-                  {subCategoryImage ? <img src={subCategoryImage} alt={subCategory?.name} /> : <div className="catalog-hero-placeholder">{subCategory?.name}</div>}
+                  {subCategoryImage ? <img src={subCategoryImage} alt={subCategory?.image_alt_text || subCategory?.name} /> : <div className="catalog-hero-placeholder">{subCategory?.name}</div>}
                 </div>
                 <div className="product-hero-card small">
-                  {categoryImage ? <img src={categoryImage} alt={category?.name} /> : <div className="catalog-hero-placeholder">{category?.name}</div>}
+                  {categoryImage ? <img src={categoryImage} alt={category?.image_alt_text || category?.name} /> : <div className="catalog-hero-placeholder">{category?.name}</div>}
                 </div>
               </div>
             </section>

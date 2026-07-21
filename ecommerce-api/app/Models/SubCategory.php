@@ -20,6 +20,7 @@ class SubCategory extends Model
         'description',
         'source_url',
         'image_path',
+        'image_alt_text',
         'is_active',
     ];
 

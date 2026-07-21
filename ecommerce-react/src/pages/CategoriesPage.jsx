@@ -15,6 +15,7 @@ import {
 import CIcon from '@coreui/icons-react';
 import { cilPen, cilTrash } from '@coreui/icons';
 import AppDataTable from '../components/AppDataTable';
+import RichTextEditor from '../components/RichTextEditor';
 import {
   createCategory,
   deleteCategory,
@@ -25,6 +26,7 @@ import {
 const initialForm = {
   name: '',
   description: '',
+  image_alt_text: '',
   is_active: true,
 };
 
@@ -96,6 +98,7 @@ export default function CategoriesPage() {
     setForm({
       name: category.name,
       description: category.description || '',
+      image_alt_text: category.image_alt_text || '',
       is_active: category.is_active,
     });
     setImageFile(null);
@@ -125,6 +128,7 @@ export default function CategoriesPage() {
         const formData = new FormData();
         formData.append('name', form.name);
         formData.append('description', form.description || '');
+        formData.append('image_alt_text', form.image_alt_text || '');
         formData.append('is_active', form.is_active ? '1' : '0');
         formData.append('image', imageFile);
         payload = formData;
@@ -209,13 +213,7 @@ export default function CategoriesPage() {
                 />
               </div>
               <div className="mb-3">
-                <CFormTextarea
-                  label="Description"
-                  name="description"
-                  rows={3}
-                  value={form.description}
-                  onChange={onInputChange}
-                />
+                <RichTextEditor label="Description" value={form.description} onChange={(description) => setForm((prev) => ({ ...prev, description }))} />
               </div>
               <div className="mb-3">
                 <label className="form-label">Image (Single)</label>
@@ -241,6 +239,7 @@ export default function CategoriesPage() {
                   )}
                 </div>
                 <input ref={fileInputRef} type="file" accept="image/*" className="d-none" onChange={onImageChange} />
+                <CFormInput className="mt-2" label="Image Alt Text" name="image_alt_text" value={form.image_alt_text} onChange={onInputChange} />
               </div>
               <div className="mb-3">
                 <CFormCheck

@@ -20,6 +20,7 @@ import {
 import CIcon from '@coreui/icons-react';
 import { cilMove, cilPen, cilTrash } from '@coreui/icons';
 import { createBanner, deleteBanner, fetchBanners, reorderBanners, updateBanner } from '../api/client';
+import AppDataTable from '../components/AppDataTable';
 
 const initialForm = {
   title: '',
@@ -35,6 +36,7 @@ const initialForm = {
   button_width: 140,
   button_height: 40,
   button_text_size: 14,
+  image_alt_text: '',
   is_active: true,
 };
 
@@ -175,6 +177,7 @@ export default function BannersPage() {
       button_width: banner.button_width ?? 140,
       button_height: banner.button_height ?? 40,
       button_text_size: banner.button_text_size ?? 14,
+      image_alt_text: banner.image_alt_text || '',
       is_active: banner.is_active,
     });
     setCurrentImageUrl(banner.image_url || '');
@@ -354,6 +357,7 @@ export default function BannersPage() {
     payload.append('button_height', String(form.button_height || 40));
     payload.append('button_text_size', String(form.button_text_size || 14));
     payload.append('is_active', form.is_active ? '1' : '0');
+    payload.append('image_alt_text', form.image_alt_text || '');
 
     if (imageFile && imageSrc) {
       const cropped = await getCroppedFile();
@@ -429,6 +433,33 @@ export default function BannersPage() {
       setError(requestError.response?.data?.message || 'Unable to reorder banners.');
     }
   }
+
+  async function moveBanner(bannerId, direction) {
+    const currentIndex = orderedBanners.findIndex((banner) => banner.id === bannerId);
+    const targetIndex = currentIndex + direction;
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= orderedBanners.length) return;
+    const next = [...orderedBanners];
+    [next[currentIndex], next[targetIndex]] = [next[targetIndex], next[currentIndex]];
+    const normalized = next.map((banner, index) => ({ ...banner, sort_order: index }));
+    setBanners(normalized);
+    try {
+      await reorderBanners(normalized.map((banner) => banner.id));
+      setMessage('Banner priority updated.');
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to reorder banners.');
+    }
+  }
+
+  const bannerColumns = useMemo(() => [
+    { name: 'Priority', selector: (row) => Number(row.sort_order) + 1, sortable: true, width: '95px' },
+    { name: 'Image', cell: (row) => row.image_url ? <img src={row.image_url} alt={row.image_alt_text || row.title} className="product-thumb" /> : '-', width: '105px' },
+    { name: 'Title', selector: (row) => row.title, sortable: true },
+    { name: 'Subtitle', selector: (row) => row.subtitle || '-', sortable: true },
+    { name: 'Button', selector: (row) => row.button_text || '-', sortable: true },
+    { name: 'Status', selector: (row) => row.is_active ? 'Active' : 'Inactive', sortable: true, width: '95px' },
+    { name: 'Order', width: '110px', cell: (row) => <div className="d-flex gap-1"><CButton type="button" size="sm" variant="outline" disabled={orderedBanners[0]?.id === row.id} onClick={() => moveBanner(row.id, -1)}>↑</CButton><CButton type="button" size="sm" variant="outline" disabled={orderedBanners.at(-1)?.id === row.id} onClick={() => moveBanner(row.id, 1)}>↓</CButton></div> },
+    { name: 'Actions', width: '120px', cell: (row) => <div className="d-flex gap-2"><CButton color="info" variant="outline" size="sm" title="Edit" onClick={() => startEdit(row)}><CIcon icon={cilPen} /></CButton><CButton color="danger" variant="outline" size="sm" title="Delete" onClick={() => onDelete(row.id)}><CIcon icon={cilTrash} /></CButton></div> },
+  ], [orderedBanners]);
 
   return (
     <CRow>
@@ -540,6 +571,7 @@ export default function BannersPage() {
               )}
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" className="d-none" onChange={onImageInputChange} />
+            <CFormInput className="mt-2" label="Image Alt Text" name="image_alt_text" value={form.image_alt_text} onChange={onInputChange} />
           </div>
 
           {imageSrc && (
@@ -801,8 +833,10 @@ export default function BannersPage() {
 
       <CCol lg={8}>
         <CCard className="mb-4">
-          <CCardHeader>Banners Priority (Drag to reorder)</CCardHeader>
+          <CCardHeader>Banners List</CCardHeader>
           <CCardBody>
+            <AppDataTable columns={bannerColumns} data={orderedBanners} progressPending={loading} searchPlaceholder="Search banners..." />
+            <div className="d-none">
             {loading ? (
               <p>Loading...</p>
             ) : (
@@ -850,6 +884,7 @@ export default function BannersPage() {
                 ))}
               </div>
             )}
+            </div>
           </CCardBody>
         </CCard>
       </CCol>

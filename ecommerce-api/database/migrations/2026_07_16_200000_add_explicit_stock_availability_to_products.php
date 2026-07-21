@@ -1,0 +1,29 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('products', function (Blueprint $table): void {
+            $table->boolean('is_in_stock')->default(false)->after('stock');
+        });
+
+        // Preserve the behaviour of existing rows until the canonical
+        // WordPress status reconciliation command is deliberately applied.
+        DB::table('products')
+            ->where('stock', '>', 0)
+            ->update(['is_in_stock' => true]);
+    }
+
+    public function down(): void
+    {
+        Schema::table('products', function (Blueprint $table): void {
+            $table->dropColumn('is_in_stock');
+        });
+    }
+};

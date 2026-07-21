@@ -1,12 +1,23 @@
 import { Link } from 'react-router-dom';
 import StorefrontHeader from '../components/StorefrontHeader';
 import { useStore } from '../context/StoreContext';
+import { getProductPurchaseLimit, isCartItemAvailable, isProductInStock } from '../utils/productStock';
 
 function money(value) { return `AED ${Number(value || 0).toFixed(2)}`; }
+
+function availabilityLabel(item) {
+  if (isCartItemAvailable(item)) return 'Quantity';
+  if (!isProductInStock(item.product)) return 'Out of stock';
+
+  const purchaseLimit = getProductPurchaseLimit(item.product);
+  if (purchaseLimit > 0 && Number(item.quantity) > purchaseLimit) return `Only ${purchaseLimit} available`;
+  return 'Unavailable';
+}
 
 export default function CartPage() {
   const { cart, loading, changeCartQuantity, removeFromCart, clearCart } = useStore();
   const items = cart.items || [];
+  const hasUnavailableItems = items.some((item) => !isCartItemAvailable(item));
 
   return (
     <div className="storefront-page">
@@ -22,12 +33,12 @@ export default function CartPage() {
                 <article className="basket-item" key={item.id}>
                   <Link to={`/product/${item.product.slug}`} className="basket-item-image">{item.product.image_url ? <img src={item.product.image_url} alt={item.product.name} /> : <span>{item.product.name?.charAt(0)}</span>}</Link>
                   <div className="basket-item-copy"><span>{item.product.brand?.name || item.product.category?.name || 'MessaraLiving'}</span><Link to={`/product/${item.product.slug}`}><h2>{item.product.name}</h2></Link><strong>{money(item.unit_price)}</strong><button type="button" onClick={() => removeFromCart(item.id)}>Remove</button></div>
-                  <div className="basket-quantity"><span>Quantity</span><div><button type="button" disabled={item.quantity <= 1} onClick={() => changeCartQuantity(item.id, item.quantity - 1)}>−</button><strong>{item.quantity}</strong><button type="button" disabled={item.quantity >= item.product.stock} onClick={() => changeCartQuantity(item.id, item.quantity + 1)}>+</button></div></div>
+                  <div className="basket-quantity"><span>{availabilityLabel(item)}</span><div><button type="button" disabled={!isCartItemAvailable(item) || item.quantity <= 1} onClick={() => changeCartQuantity(item.id, item.quantity - 1)}>−</button><strong>{item.quantity}</strong><button type="button" disabled={!isCartItemAvailable(item) || item.quantity >= getProductPurchaseLimit(item.product)} onClick={() => changeCartQuantity(item.id, item.quantity + 1)}>+</button></div></div>
                   <strong className="basket-line-total">{money(item.line_total)}</strong>
                 </article>
               ))}
             </section>
-            <aside className="basket-summary"><span>Order summary</span><h2>{money(cart.subtotal)}</h2><div><span>Subtotal</span><strong>{money(cart.subtotal)}</strong></div><div><span>Delivery</span><strong>Free</strong></div><div className="basket-summary-total"><span>Total</span><strong>{money(cart.subtotal)}</strong></div><button type="button" className="store-primary-button">Continue to checkout</button><small>Secure checkout will be connected in the next payment stage.</small></aside>
+            <aside className="basket-summary"><span>Order summary</span><h2>{money(cart.subtotal)}</h2><div><span>Subtotal</span><strong>{money(cart.subtotal)}</strong></div><div><span>Delivery</span><strong>Free</strong></div><div className="basket-summary-total"><span>Total</span><strong>{money(cart.subtotal)}</strong></div>{hasUnavailableItems && <small>Remove unavailable products before checkout.</small>}<button type="button" className="store-primary-button" disabled={hasUnavailableItems}>{hasUnavailableItems ? 'Unavailable item in cart' : 'Continue to checkout'}</button><small>Secure checkout will be connected in the next payment stage.</small></aside>
           </div>
         )}
       </main>

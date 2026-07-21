@@ -28,9 +28,14 @@ import SearchResultsPage from './pages/SearchResultsPage';
 import ServicesPage from './pages/ServicesPage';
 import SubCategoriesPage from './pages/SubCategoriesPage';
 import UsersPage from './pages/UsersPage';
+import SeoPage from './pages/SeoPage';
+import SizeOptionsPage from './pages/SizeOptionsPage';
+import PageSeo from './components/PageSeo';
 
 export default function App() {
   return (
+    <>
+    <PageSeo />
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/categories/:categorySlug" element={<PublicCategoryPage />} />
@@ -67,8 +72,10 @@ export default function App() {
         <Route path="brands" element={<BrandsPage />} />
         <Route path="colors" element={<ColorsPage />} />
         <Route path="measurements" element={<MeasurementsPage />} />
+        <Route path="size-options" element={<SizeOptionsPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="banners" element={<BannersPage />} />
+        <Route path="seo" element={<SeoPage />} />
         <Route path="products" element={<Navigate to="/dashboard/products/list" replace />} />
         <Route path="products/create" element={<ProductCreatePage />} />
         <Route path="products/list" element={<ProductListPage />} />
@@ -78,5 +85,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

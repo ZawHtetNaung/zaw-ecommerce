@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { fetchPublicCategory } from '../api/client';
+import { API_BASE_URL, fetchPublicCategory } from '../api/client';
 import StorefrontHeader from '../components/StorefrontHeader';
 import RichTextContent from '../components/RichTextContent';
 
 export default function PublicCategoryPage() {
   const { categorySlug } = useParams();
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+  const apiBaseUrl = API_BASE_URL;
   const [category, setCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

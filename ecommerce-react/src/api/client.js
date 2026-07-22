@@ -252,6 +252,25 @@ export async function clearCart() {
   return data;
 }
 
+export async function mergeGuestCart(items) {
+  const { data } = await api.post('/api/cart/merge', { items }, {
+    globalLoading: false,
+  });
+  return data;
+}
+
+export async function fetchCheckoutQuote(emirateCode, guestItems = null) {
+  const isGuestQuote = Array.isArray(guestItems);
+  const payload = {
+    emirate_code: emirateCode,
+    ...(isGuestQuote ? { items: guestItems } : {}),
+  };
+  const { data } = await api.post(isGuestQuote ? '/api/public/checkout/quote' : '/api/checkout/quote', payload, {
+    globalLoading: false,
+  });
+  return data;
+}
+
 export async function fetchFavorites() {
   const { data } = await shareInFlightRequest('favorites', () => (
     api.get('/api/favorites', { globalLoading: false })

@@ -11,6 +11,7 @@ import MeasurementsPage from './pages/MeasurementsPage';
 import BrandsPage from './pages/BrandsPage';
 import BannersPage from './pages/BannersPage';
 import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
 import EventsPage from './pages/EventsPage';
 import FavouritesPage from './pages/FavouritesPage';
 import NewsPage from './pages/NewsPage';
@@ -53,7 +54,8 @@ export default function App() {
       <Route path="/services" element={<ServicesPage />} />
       <Route path="/news" element={<NewsPage />} />
       <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/favourites" element={<ProtectedRoute><FavouritesPage /></ProtectedRoute>} />
 
       <Route

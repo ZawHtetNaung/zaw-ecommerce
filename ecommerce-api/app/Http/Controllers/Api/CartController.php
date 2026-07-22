@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
@@ -78,6 +79,67 @@ class CartController extends Controller
     public function clear(Request $request)
     {
         $request->user()->cartItems()->delete();
+
+        return response()->json($this->payload($request->user()));
+    }
+
+    public function merge(Request $request)
+    {
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1', 'max:100'],
+            'items.*.product_id' => ['required', 'integer', 'distinct:strict'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
+        ]);
+
+        $requestedItems = collect($validated['items'])
+            ->map(fn (array $item): array => [
+                'product_id' => (int) $item['product_id'],
+                'quantity' => (int) $item['quantity'],
+            ])
+            ->sortBy('product_id')
+            ->values();
+
+        DB::transaction(function () use ($request, $requestedItems): void {
+            $productIds = $requestedItems->pluck('product_id');
+            $products = Product::query()
+                ->whereKey($productIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+            $existingItems = $request->user()->cartItems()
+                ->whereIn('product_id', $productIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('product_id');
+
+            foreach ($requestedItems as $requestedItem) {
+                $product = $products->get($requestedItem['product_id']);
+
+                if (! $product || ! $product->is_active || ! $product->is_in_stock || $product->stock < 1) {
+                    continue;
+                }
+
+                $cartItem = $existingItems->get($product->id);
+                $existingQuantity = $cartItem?->quantity ?? 0;
+                $maximumQuantity = min(99, $product->stock);
+                $mergedQuantity = min(
+                    $maximumQuantity,
+                    $existingQuantity + $requestedItem['quantity']
+                );
+
+                if ($cartItem) {
+                    $cartItem->update(['quantity' => $mergedQuantity]);
+
+                    continue;
+                }
+
+                CartItem::query()->create([
+                    'user_id' => $request->user()->id,
+                    'product_id' => $product->id,
+                    'quantity' => $mergedQuantity,
+                ]);
+            }
+        });
 
         return response()->json($this->payload($request->user()));
     }

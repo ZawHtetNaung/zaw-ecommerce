@@ -27,6 +27,7 @@ class Product extends Model
         'discount_price',
         'stock',
         'is_in_stock',
+        'requires_paid_shipping',
         'description',
         'short_description',
         'seo_title',
@@ -48,6 +49,7 @@ class Product extends Model
             'discount_price' => 'decimal:2',
             'stock' => 'integer',
             'is_in_stock' => 'boolean',
+            'requires_paid_shipping' => 'boolean',
             'is_active' => 'boolean',
             'physical_length' => 'decimal:3', 'physical_width' => 'decimal:3', 'physical_height' => 'decimal:3', 'physical_weight' => 'decimal:3',
         ];

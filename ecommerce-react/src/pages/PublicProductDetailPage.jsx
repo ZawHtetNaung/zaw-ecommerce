@@ -129,7 +129,7 @@ export default function PublicProductDetailPage() {
   }
 
   async function runProductAction(type, callback) {
-    if (!isAuthenticated) {
+    if (type === 'favorite' && !isAuthenticated) {
       navigate('/login', { state: { from: `${location.pathname}${location.search}` } });
       return;
     }
@@ -140,7 +140,7 @@ export default function PublicProductDetailPage() {
       await callback();
       setActionMessage(type === 'cart' ? `${quantity} item${quantity > 1 ? 's' : ''} added to your cart.` : 'Your favourites have been updated.');
     } catch (requestError) {
-      setActionMessage(requestError.response?.data?.message || 'Unable to update this product right now.');
+      setActionMessage(requestError.response?.data?.message || requestError.message || 'Unable to update this product right now.');
     } finally {
       setActionBusy('');
     }
@@ -295,7 +295,7 @@ export default function PublicProductDetailPage() {
                     type="button"
                     className="public-add-cart-button"
                     disabled={actionBusy === 'cart' || !inStock}
-                    onClick={() => runProductAction('cart', () => addToCart(product.id, quantity))}
+                    onClick={() => runProductAction('cart', () => addToCart(product, quantity))}
                   >
                     {actionBusy === 'cart' ? 'Adding...' : inStock ? 'Add to cart' : 'Out of stock'}
                   </button>

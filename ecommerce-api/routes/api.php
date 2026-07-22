@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\FavoriteController;
@@ -36,6 +37,7 @@ Route::get('/public/categories/{categorySlug}/sub-categories/{subCategorySlug}/p
 Route::get('/public/events', [EventController::class, 'publicIndex']);
 Route::get('/public/google-reviews', [GoogleReviewController::class, 'publicIndex']);
 Route::get('/public/seo', [SeoController::class, 'publicShow']);
+Route::post('/public/checkout/quote', [CheckoutController::class, 'guestQuote']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/user', fn (Request $request) => $request->user());
@@ -46,6 +48,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::patch('/cart/{cartItem}', [CartController::class, 'update']);
     Route::delete('/cart/{cartItem}', [CartController::class, 'destroy']);
     Route::delete('/cart', [CartController::class, 'clear']);
+    Route::post('/cart/merge', [CartController::class, 'merge']);
+    Route::post('/checkout/quote', [CheckoutController::class, 'quote']);
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/favorites', [FavoriteController::class, 'store']);
     Route::delete('/favorites/{product}', [FavoriteController::class, 'destroy']);

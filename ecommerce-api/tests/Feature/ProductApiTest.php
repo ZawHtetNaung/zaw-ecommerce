@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Color;
-use App\Models\Brand;
 use App\Models\Measurement;
 use App\Models\SubCategory;
 use App\Models\User;
@@ -60,6 +60,7 @@ class ProductApiTest extends TestCase
                 'name' => 'iPhone 16',
                 'price' => 1299.99,
                 'stock' => 25,
+                'requires_paid_shipping' => true,
                 'description' => 'Latest model',
                 'is_active' => true,
                 'brand_id' => $brand->id,
@@ -74,6 +75,7 @@ class ProductApiTest extends TestCase
         $create
             ->assertCreated()
             ->assertJsonPath('product.name', 'iPhone 16')
+            ->assertJsonPath('product.requires_paid_shipping', true)
             ->assertJsonPath('product.image_urls.0', fn (mixed $url) => is_string($url) && str_contains($url, '/storage/products/'));
 
         $productId = $create->json('product.id');
@@ -87,6 +89,7 @@ class ProductApiTest extends TestCase
                 'name' => 'iPhone 16 Pro',
                 'price' => 1499.99,
                 'stock' => 10,
+                'requires_paid_shipping' => false,
                 'description' => 'Updated model',
                 'is_active' => true,
                 'brand_id' => $brand->id,
@@ -97,6 +100,7 @@ class ProductApiTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('product.name', 'iPhone 16 Pro')
+            ->assertJsonPath('product.requires_paid_shipping', false)
             ->assertJsonPath('product.colors.0.name', 'Red')
             ->assertJsonPath('product.measurements.0.name', 'Size M')
             ->assertJsonPath('product.image_urls.0', fn (mixed $url) => is_string($url) && str_contains($url, '/storage/products/'));

@@ -67,6 +67,14 @@ class ImportWordPressCatalog extends Command
         }
 
         $categoryMap = $this->importCategories($uploads);
+        $specialCollectionTermIds = DB::connection('wordpress')->table('wp_terms as terms')
+            ->join('wp_term_taxonomy as taxonomy', 'taxonomy.term_id', '=', 'terms.term_id')
+            ->where('taxonomy.taxonomy', 'product_cat')
+            ->where('terms.slug', 'special-collection')
+            ->distinct()
+            ->pluck('terms.term_id')
+            ->map(fn ($termId) => (int) $termId)
+            ->all();
         $fallback = Category::firstOrCreate(
             ['slug' => 'uncategorized'],
             ['name' => 'Uncategorized', 'is_active' => true]
@@ -81,7 +89,7 @@ class ImportWordPressCatalog extends Command
             ->where('post_type', 'product')
             ->whereIn('post_status', ['publish', 'private', 'draft'])
             ->orderBy('ID')
-            ->chunkById(100, function ($posts) use ($uploads, $categoryMap, $brandMap, $fallback, $bar, &$imported, &$missingImages) {
+            ->chunkById(100, function ($posts) use ($uploads, $categoryMap, $brandMap, $specialCollectionTermIds, $fallback, $bar, &$imported, &$missingImages) {
                 $ids = $posts->pluck('ID')->map(fn ($id) => (int) $id)->all();
                 $meta = $this->metaFor('wp_postmeta', 'post_id', $ids);
                 $terms = $this->productCategoryTerms($ids);
@@ -136,6 +144,7 @@ class ImportWordPressCatalog extends Command
                             'discount_price' => $sale !== null && $sale < $regular ? $sale : null,
                             'stock' => $isInStock ? max(1, $stockQuantity) : 0,
                             'is_in_stock' => $isInStock,
+                            'requires_paid_shipping' => count(array_intersect($productTerms, $specialCollectionTermIds)) > 0,
                             'description' => $this->nullable($post->post_content),
                             'short_description' => $this->nullable(html_entity_decode(strip_tags((string) $post->post_excerpt), ENT_QUOTES | ENT_HTML5, 'UTF-8')),
                             'seo_title' => $this->nullable($postMeta['_yoast_wpseo_title'] ?? $postMeta['rank_math_title'] ?? null),

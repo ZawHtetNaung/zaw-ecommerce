@@ -102,7 +102,7 @@ export default function StorefrontHeader({ onLogin, onRegister }) {
         <div className="top-bar-col center">
           <Link to="/services#delivery" className="delivery-link">
             <CIcon icon={cilTruck} />
-            <span>Free delivery</span>
+            <span>UAE delivery</span>
           </Link>
         </div>
         <div className="top-bar-col end">

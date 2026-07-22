@@ -38,7 +38,7 @@ export default function CartPage() {
                 </article>
               ))}
             </section>
-            <aside className="basket-summary"><span>Order summary</span><h2>{money(cart.subtotal)}</h2><div><span>Subtotal</span><strong>{money(cart.subtotal)}</strong></div><div><span>Delivery</span><strong>Free</strong></div><div className="basket-summary-total"><span>Total</span><strong>{money(cart.subtotal)}</strong></div>{hasUnavailableItems && <small>Remove unavailable products before checkout.</small>}<button type="button" className="store-primary-button" disabled={hasUnavailableItems}>{hasUnavailableItems ? 'Unavailable item in cart' : 'Continue to checkout'}</button><small>Secure checkout will be connected in the next payment stage.</small></aside>
+            <aside className="basket-summary"><span>Order summary</span><h2>{money(cart.subtotal)}</h2><div><span>Subtotal</span><strong>{money(cart.subtotal)}</strong></div><div><span>Delivery</span><strong>Calculated at checkout</strong></div><div className="basket-summary-total"><span>Estimated total</span><strong>{money(cart.subtotal)}</strong></div>{hasUnavailableItems && <small>Remove unavailable products before checkout.</small>}{hasUnavailableItems ? <button type="button" className="store-primary-button" disabled>Unavailable item in cart</button> : <Link to="/checkout" className="store-primary-button">Continue to checkout</Link>}<small>Delivery depends on the UAE area and merchandise subtotal.</small></aside>
           </div>
         )}
       </main>

@@ -45,6 +45,7 @@ const initialForm = {
   price: '',
   discount_price: '',
   is_in_stock: true,
+  requires_paid_shipping: false,
   stock: '1',
   description: '',
   short_description: '',
@@ -152,6 +153,7 @@ export default function ProductForm({ productId = null }) {
             price: String(product.price),
             discount_price: product.discount_price ? String(product.discount_price) : '',
             is_in_stock: productIsInStock,
+            requires_paid_shipping: Boolean(product.requires_paid_shipping),
             stock: productIsInStock ? String(Math.max(1, Number(product.stock) || 1)) : '0',
             description: product.description || '',
             short_description: product.short_description || '',
@@ -295,6 +297,7 @@ export default function ProductForm({ productId = null }) {
     }
     const normalizedStock = form.is_in_stock ? Math.max(1, Math.floor(Number(form.stock) || 1)) : 0;
     payload.append('is_in_stock', form.is_in_stock ? '1' : '0');
+    payload.append('requires_paid_shipping', form.requires_paid_shipping ? '1' : '0');
     payload.append('stock', String(normalizedStock));
     payload.append('description', form.description || '');
     payload.append('short_description', form.short_description || '');
@@ -455,6 +458,18 @@ export default function ProductForm({ productId = null }) {
                 required={form.is_in_stock}
                 text={form.is_in_stock ? 'At least one item is required.' : 'Quantity is set to zero while stock is off.'}
               />
+            </CCol>
+            <CCol md={6} className="mb-3">
+              <label className="form-label d-block">Delivery Policy</label>
+              <CFormSwitch
+                label="Always charge zone delivery fee"
+                name="requires_paid_shipping"
+                checked={form.requires_paid_shipping}
+                onChange={onInputChange}
+              />
+              <div className="form-text">
+                Keeps the zone fee above free-delivery thresholds. Special Collection products use this automatically, including products whose main category is different.
+              </div>
             </CCol>
             <CCol md={6} className="mb-3">
               <label className="form-label">Colors (multiple)</label>

@@ -21,8 +21,8 @@ export default function StoreProductCard({ product }) {
   const hasDiscount = Number(product.discount_price || 0) > 0;
   const inStock = isProductInStock(product);
 
-  async function runAuthenticatedAction(action, callback) {
-    if (!isAuthenticated) {
+  async function runStoreAction(action, callback) {
+    if (action === 'favorite' && !isAuthenticated) {
       navigate('/login', { state: { from: `${location.pathname}${location.search}` } });
       return;
     }
@@ -33,7 +33,7 @@ export default function StoreProductCard({ product }) {
       await callback();
       setMessage(action === 'cart' ? 'Added to cart' : favorite ? 'Removed' : 'Saved');
     } catch (error) {
-      setMessage(error.response?.data?.message || 'Please try again.');
+      setMessage(error.response?.data?.message || error.message || 'Please try again.');
     } finally {
       setBusyAction('');
     }
@@ -57,7 +57,7 @@ export default function StoreProductCard({ product }) {
             type="button"
             className={favorite ? 'is-active' : ''}
             disabled={busyAction === 'favorite'}
-            onClick={() => runAuthenticatedAction('favorite', () => favorite ? removeFromFavorites(product.id) : addToFavorites(product.id))}
+            onClick={() => runStoreAction('favorite', () => favorite ? removeFromFavorites(product.id) : addToFavorites(product.id))}
             aria-label={favorite ? 'Remove from favourites' : 'Add to favourites'}
           >
             <CIcon icon={cilHeart} />
@@ -66,7 +66,7 @@ export default function StoreProductCard({ product }) {
             type="button"
             className="store-add-cart"
             disabled={busyAction === 'cart' || !inStock}
-            onClick={() => runAuthenticatedAction('cart', () => addToCart(product.id))}
+            onClick={() => runStoreAction('cart', () => addToCart(product))}
           >
             <CIcon icon={cilCart} />
             <span>{inStock ? 'Add to cart' : 'Out of stock'}</span>

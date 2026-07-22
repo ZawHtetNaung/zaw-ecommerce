@@ -149,6 +149,13 @@ export async function fetchPublicBrands() {
   return data;
 }
 
+export async function fetchPublicGoogleReviews() {
+  const { data } = await shareInFlightRequest('public-google-reviews', () => (
+    api.get('/api/public/google-reviews', { globalLoading: false })
+  ));
+  return data;
+}
+
 export async function fetchPublicSeo(path) {
   const { data } = await shareInFlightRequest(`public-seo:${path}`, () => (
     api.get('/api/public/seo', { params: { path }, globalLoading: false })

@@ -28,6 +28,31 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'google_reviews' => [
+        'api_key' => env('GOOGLE_PLACES_API_KEY'),
+        'endpoint' => env(
+            'GOOGLE_PLACES_DETAILS_URL',
+            'https://maps.googleapis.com/maps/api/place/details/json'
+        ),
+        'cache_ttl' => (int) env('GOOGLE_REVIEWS_CACHE_TTL', 21600),
+        'places' => [
+            [
+                'label' => 'Sharjah Gallery',
+                'place_id' => env(
+                    'GOOGLE_PLACES_SHARJAH_PLACE_ID',
+                    'ChIJfYeFAOVbXz4RznAggIiKFIw'
+                ),
+            ],
+            [
+                'label' => 'Dubai Showroom',
+                'place_id' => env(
+                    'GOOGLE_PLACES_DUBAI_PLACE_ID',
+                    'ChIJPWuPLJNpXz4RxSjhEeZYfCc'
+                ),
+            ],
+        ],
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

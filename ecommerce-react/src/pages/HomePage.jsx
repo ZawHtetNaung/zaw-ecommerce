@@ -8,6 +8,7 @@ import {
   fetchPublicProducts,
   fetchPublicSubCategories,
 } from '../api/client';
+import GoogleReviewsSection from '../components/GoogleReviewsSection';
 import StorefrontHeader from '../components/StorefrontHeader';
 import { useAuth } from '../context/AuthContext';
 import { isProductInStock } from '../utils/productStock';
@@ -904,6 +905,8 @@ export default function HomePage() {
           </div>
         )}
       </section>
+
+      <GoogleReviewsSection />
 
       <section id="rooms" className="section rooms">
         <div className="section-head">

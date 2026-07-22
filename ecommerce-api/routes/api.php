@@ -8,13 +8,15 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\GoogleReviewController;
 use App\Http\Controllers\Api\MeasurementController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\SeoController;
-use App\Http\Controllers\Api\SubCategoryController;
 use App\Http\Controllers\Api\SizeOptionController;
+use App\Http\Controllers\Api\SubCategoryController;
 use App\Http\Controllers\Api\UserController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -32,10 +34,11 @@ Route::get('/public/categories/{slug}', [CategoryController::class, 'publicShow'
 Route::get('/public/categories/{categorySlug}/sub-categories/{subCategorySlug}/products', [ProductController::class, 'publicIndexBySubCategory']);
 Route::get('/public/categories/{categorySlug}/sub-categories/{subCategorySlug}/products/{productSlug}', [ProductController::class, 'publicShow']);
 Route::get('/public/events', [EventController::class, 'publicIndex']);
+Route::get('/public/google-reviews', [GoogleReviewController::class, 'publicIndex']);
 Route::get('/public/seo', [SeoController::class, 'publicShow']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
-    Route::get('/user', fn (\Illuminate\Http\Request $request) => $request->user());
+    Route::get('/user', fn (Request $request) => $request->user());
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::get('/cart', [CartController::class, 'index']);

@@ -5,7 +5,13 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_values(array_filter([env('FRONTEND_URL')])),
+    'allowed_origins' => array_filter([
+        env('FRONTEND_URL', 'https://shop.zawhtetnaung.com'),
+        'https://shop.zawhtetnaung.com',
+        'https://zawhtetnaung.com',
+        'https://www.zawhtetnaung.com',
+        'http://localhost:5173',
+    ]),
 
     'allowed_origins_patterns' => [],
 

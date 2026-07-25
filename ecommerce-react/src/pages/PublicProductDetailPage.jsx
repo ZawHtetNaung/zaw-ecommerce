@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchPublicProduct } from '../api/client';
 import StorefrontHeader from '../components/StorefrontHeader';
@@ -10,6 +10,55 @@ import { getProductPurchaseLimit, isProductInStock } from '../utils/productStock
 function formatPrice(value) {
   const numberValue = Number(value || 0);
   return Number.isFinite(numberValue) ? numberValue.toFixed(2) : '0.00';
+}
+
+function SingleLineProductTitle({ name }) {
+  const titleRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const title = titleRef.current;
+    const headingRow = title?.parentElement;
+    if (!title || !headingRow) return undefined;
+
+    let animationFrame = 0;
+    let previousWidth = 0;
+
+    const fitTitle = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        title.style.fontSize = '';
+        const availableWidth = title.clientWidth;
+        const naturalWidth = title.scrollWidth;
+
+        if (availableWidth > 0 && naturalWidth > availableWidth) {
+          const naturalSize = Number.parseFloat(window.getComputedStyle(title).fontSize);
+          title.style.fontSize = `${naturalSize * (availableWidth / naturalWidth) * 0.98}px`;
+        }
+      });
+    };
+
+    fitTitle();
+    document.fonts?.ready.then(fitTitle);
+
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(([entry]) => {
+          if (Math.abs(entry.contentRect.width - previousWidth) < 0.5) return;
+          previousWidth = entry.contentRect.width;
+          fitTitle();
+        });
+
+    resizeObserver?.observe(headingRow);
+    window.addEventListener('resize', fitTitle);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', fitTitle);
+    };
+  }, [name]);
+
+  return <h1 ref={titleRef}>{name}</h1>;
 }
 
 export default function PublicProductDetailPage() {
@@ -25,6 +74,9 @@ export default function PublicProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [actionBusy, setActionBusy] = useState('');
   const [actionMessage, setActionMessage] = useState('');
+  const [selectedColorId, setSelectedColorId] = useState(null);
+  const [colorValidationAttempt, setColorValidationAttempt] = useState(0);
+  const productSectionRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +91,8 @@ export default function PublicProductDetailPage() {
           setProduct(data);
           setActiveIndex(0);
           setQuantity(1);
+          setSelectedColorId(null);
+          setColorValidationAttempt(0);
         }
       } catch (requestError) {
         if (!cancelled) {
@@ -122,10 +176,34 @@ export default function PublicProductDetailPage() {
   }
 
   function selectColor(color) {
+    setSelectedColorId(Number(color.id));
+    setColorValidationAttempt(0);
+    setActionMessage('');
+
     const productImageId = Number(color?.pivot?.product_image_id || 0);
-    if (!productImageId) return;
-    const imageIndex = images.findIndex((image) => Number(image.id) === productImageId);
-    if (imageIndex >= 0) setActiveIndex(imageIndex);
+    if (productImageId) {
+      const imageIndex = images.findIndex((image) => Number(image.id) === productImageId);
+      if (imageIndex >= 0) setActiveIndex(imageIndex);
+    }
+
+    window.requestAnimationFrame(() => {
+      productSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }
+
+  function addSelectedProductToCart() {
+    const productColors = Array.isArray(product?.colors) ? product.colors : [];
+
+    if (productColors.length > 0 && !selectedColorId) {
+      setColorValidationAttempt((attempt) => attempt + 1);
+      setActionMessage('Please choose a colour first.');
+      return;
+    }
+
+    runProductAction('cart', () => addToCart(product, quantity));
   }
 
   async function runProductAction(type, callback) {
@@ -170,7 +248,7 @@ export default function PublicProductDetailPage() {
           </section>
         ) : product ? (
           <>
-            <section className="public-product-detail-grid">
+            <section className="public-product-detail-grid" ref={productSectionRef}>
               <div className="public-product-gallery">
                 <div className="public-product-slider-box">
                   {images.length > 0 ? (
@@ -248,19 +326,20 @@ export default function PublicProductDetailPage() {
                     </nav>
                 </div>
                 <div className="public-product-heading-row">
-                    <h1>{product.name}</h1>
+                    <SingleLineProductTitle name={product.name} />
                     {product.brand?.image_url && (
-                      <div
+                      <Link
+                        to={`/search?brand_id=${encodeURIComponent(product.brand.id)}`}
                         className="public-product-brand-logo"
-                        tabIndex={0}
-                        aria-label={`Brand: ${product.brand.name}`}
+                        aria-label={`Shop ${product.brand.name} products`}
+                        title={`Shop ${product.brand.name}`}
                       >
                         <img
                           src={product.brand.image_url}
                           alt={product.brand.image_alt_text || `${product.brand.name} logo`}
                         />
                         <span className="public-product-brand-name">{product.brand.name}</span>
-                      </div>
+                      </Link>
                     )}
                 </div>
                 {product.short_description ? (
@@ -295,7 +374,7 @@ export default function PublicProductDetailPage() {
                     type="button"
                     className="public-add-cart-button"
                     disabled={actionBusy === 'cart' || !inStock}
-                    onClick={() => runProductAction('cart', () => addToCart(product, quantity))}
+                    onClick={addSelectedProductToCart}
                   >
                     {actionBusy === 'cart' ? 'Adding...' : inStock ? 'Add to cart' : 'Out of stock'}
                   </button>
@@ -329,9 +408,19 @@ export default function PublicProductDetailPage() {
                   </div>
                 </div>
 
-                <div className="public-product-pill-row">
+                <div
+                  className={`public-product-pill-row ${colorValidationAttempt > 0 ? 'is-color-required' : ''}`}
+                  key={`product-colors-${colorValidationAttempt}`}
+                >
                   {(product.colors || []).map((color) => (
-                    <button type="button" key={color.id} className="public-product-color" title={color.name} onClick={() => selectColor(color)}>
+                    <button
+                      type="button"
+                      key={color.id}
+                      className={`public-product-color ${Number(selectedColorId) === Number(color.id) ? 'is-selected' : ''}`}
+                      title={color.name}
+                      aria-pressed={Number(selectedColorId) === Number(color.id)}
+                      onClick={() => selectColor(color)}
+                    >
                       {color.image_url ? <img src={color.image_url} alt={color.image_alt_text || color.name} /> : <span className="public-product-color-placeholder" style={color.hex_code ? { backgroundColor: color.hex_code } : undefined} />}
                       <span className="public-product-color-name">{color.name}</span>
                     </button>

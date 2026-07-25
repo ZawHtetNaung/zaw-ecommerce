@@ -95,6 +95,29 @@ export default function ProductListPage() {
           Array.isArray(row.colors) && row.colors.length > 0 ? row.colors.map((color) => color.name).join(', ') : '-',
       },
       {
+        name: 'Color Images',
+        selector: (row) => {
+          const colors = Array.isArray(row.colors) ? row.colors : [];
+          const connected = colors.filter((color) => Number(color.pivot?.product_image_id || 0) > 0).length;
+          if (colors.length === 0) return 'No colors';
+          return connected === colors.length
+            ? `Connected ${connected}/${colors.length}`
+            : `Needs mapping ${connected}/${colors.length}`;
+        },
+        sortable: true,
+        cell: (row) => {
+          const colors = Array.isArray(row.colors) ? row.colors : [];
+          const connected = colors.filter((color) => Number(color.pivot?.product_image_id || 0) > 0).length;
+          if (colors.length === 0) return <CBadge color="secondary">No colors</CBadge>;
+
+          return (
+            <CBadge color={connected === colors.length ? 'success' : 'warning'}>
+              {connected === colors.length ? 'Connected' : 'Needs mapping'} {connected}/{colors.length}
+            </CBadge>
+          );
+        },
+      },
+      {
         name: 'Measurements',
         cell: (row) =>
           Array.isArray(row.measurements) && row.measurements.length > 0

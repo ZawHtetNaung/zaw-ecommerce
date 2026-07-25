@@ -54,6 +54,7 @@ const initialForm = {
   faqs: [],
   images: [],
   color_ids: [],
+  color_image_mappings: {},
   measurement_ids: [],
   measurement_values: {},
   size_option_ids: [],
@@ -106,6 +107,20 @@ export default function ProductForm({ productId = null }) {
     () => form.images.map((file) => ({ file, url: URL.createObjectURL(file) })),
     [form.images]
   );
+  const availableColorImages = useMemo(() => [
+    ...existingImages
+      .filter((image) => !removeImageIds.includes(image.id))
+      .map((image, index) => ({
+        value: `existing:${image.id}`,
+        label: `Gallery image ${index + 1}${image.alt_text ? ` — ${image.alt_text}` : ''}`,
+        url: image.url,
+      })),
+    ...newImagePreviews.map((item, index) => ({
+      value: `new:${index}`,
+      label: `New upload ${index + 1} — ${item.file.name}`,
+      url: item.url,
+    })),
+  ], [existingImages, newImagePreviews, removeImageIds]);
 
   useEffect(() => {
     return () => {
@@ -162,6 +177,12 @@ export default function ProductForm({ productId = null }) {
             faqs: Array.isArray(product.faqs) ? product.faqs.map((faq) => ({ question: faq.question || '', answer: faq.answer || '' })) : [],
             images: [],
             color_ids: Array.isArray(product.colors) ? product.colors.map((color) => String(color.id)) : [],
+            color_image_mappings: Array.isArray(product.colors)
+              ? Object.fromEntries(product.colors.map((color) => [
+                  String(color.id),
+                  color.pivot?.product_image_id ? `existing:${color.pivot.product_image_id}` : '',
+                ]))
+              : {},
             measurement_ids: Array.isArray(product.measurements)
               ? product.measurements.map((measurement) => String(measurement.id))
               : [],
@@ -259,17 +280,42 @@ export default function ProductForm({ productId = null }) {
   }
 
   function removeNewImage(indexToRemove) {
-    setForm((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove),
-    }));
+    setForm((prev) => {
+      const colorImageMappings = Object.fromEntries(
+        Object.entries(prev.color_image_mappings).map(([colorId, mapping]) => {
+          const match = String(mapping).match(/^new:(\d+)$/);
+          if (!match) return [colorId, mapping];
+          const imageIndex = Number(match[1]);
+          if (imageIndex === indexToRemove) return [colorId, ''];
+          return [colorId, imageIndex > indexToRemove ? `new:${imageIndex - 1}` : mapping];
+        })
+      );
+
+      return {
+        ...prev,
+        images: prev.images.filter((_, index) => index !== indexToRemove),
+        color_image_mappings: colorImageMappings,
+      };
+    });
     setNewImageAltTexts((prev) => prev.filter((_, index) => index !== indexToRemove));
   }
 
   function toggleExistingImage(imageId) {
+    const isBeingRemoved = !removeImageIds.includes(imageId);
     setRemoveImageIds((prev) =>
       prev.includes(imageId) ? prev.filter((id) => id !== imageId) : [...prev, imageId]
     );
+    if (isBeingRemoved) {
+      setForm((prev) => ({
+        ...prev,
+        color_image_mappings: Object.fromEntries(
+          Object.entries(prev.color_image_mappings).map(([colorId, mapping]) => [
+            colorId,
+            mapping === `existing:${imageId}` ? '' : mapping,
+          ])
+        ),
+      }));
+    }
   }
 
   async function onSubmit(event) {
@@ -314,6 +360,16 @@ export default function ProductForm({ productId = null }) {
       }
     });
     form.color_ids.forEach((id) => payload.append('color_ids[]', id));
+    form.color_ids.forEach((id) => {
+      const mapping = form.color_image_mappings[id] || '';
+      if (mapping.startsWith('existing:')) {
+        payload.append(`color_image_ids[${id}]`, mapping.slice('existing:'.length));
+      } else if (mapping.startsWith('new:')) {
+        payload.append(`color_image_indexes[${id}]`, mapping.slice('new:'.length));
+      } else {
+        payload.append(`color_image_ids[${id}]`, '');
+      }
+    });
     form.measurement_ids.forEach((id) => payload.append('measurement_ids[]', id));
     form.measurement_ids.forEach((id) => {
       payload.append(`measurement_values[${id}][value]`, form.measurement_values[id]?.value ?? '');
@@ -481,9 +537,13 @@ export default function ProductForm({ productId = null }) {
                   return color ? { value: String(color.id), label: color.name } : null;
                 }).filter(Boolean)}
                 onChange={(selected) => {
+                  const selectedIds = selected ? selected.map((item) => item.value) : [];
                   setForm((prev) => ({
                     ...prev,
-                    color_ids: selected ? selected.map((item) => item.value) : [],
+                    color_ids: selectedIds,
+                    color_image_mappings: Object.fromEntries(
+                      selectedIds.map((id) => [id, prev.color_image_mappings[id] || ''])
+                    ),
                   }));
                 }}
                 classNamePrefix="select"
@@ -667,6 +727,79 @@ export default function ProductForm({ productId = null }) {
                 ))}
               </div>
             </div>
+          )}
+
+          {form.color_ids.length > 0 && (
+            <section className="product-color-image-mapping mb-3" aria-labelledby="color-image-mapping-title">
+              <div className="product-color-image-mapping-heading">
+                <div>
+                  <h2 id="color-image-mapping-title">Color button slider images</h2>
+                  <p>Connect each storefront color button to one image from this product’s gallery. Images are reused; this does not create duplicate files.</p>
+                </div>
+                <span>{form.color_ids.filter((id) => form.color_image_mappings[id]).length}/{form.color_ids.length} connected</span>
+              </div>
+
+              {availableColorImages.length === 0 && (
+                <CAlert color="warning">
+                  Upload at least one product image before connecting color buttons.
+                </CAlert>
+              )}
+
+              <div className="product-color-image-mapping-list">
+                {form.color_ids.map((id) => {
+                  const color = colors.find((item) => String(item.id) === String(id));
+                  const mapping = form.color_image_mappings[id] || '';
+                  const mappedImage = availableColorImages.find((image) => image.value === mapping);
+
+                  return (
+                    <article className="product-color-image-mapping-row" key={`color-image-${id}`}>
+                      <div className="product-color-image-identity">
+                        {color?.image_url ? (
+                          <img src={color.image_url} alt={color.image_alt_text || color.name} />
+                        ) : (
+                          <span
+                            className="product-color-image-swatch"
+                            style={color?.hex_code ? { backgroundColor: color.hex_code } : undefined}
+                            aria-hidden="true"
+                          />
+                        )}
+                        <div>
+                          <strong>{color?.name || `Color #${id}`}</strong>
+                          <small className={mapping ? 'is-connected' : 'is-missing'}>
+                            {mapping ? 'Connected to slider' : 'Not connected'}
+                          </small>
+                        </div>
+                      </div>
+
+                      <CFormSelect
+                        aria-label={`Slider image for ${color?.name || `color ${id}`}`}
+                        value={mapping}
+                        onChange={(event) => setForm((prev) => ({
+                          ...prev,
+                          color_image_mappings: {
+                            ...prev.color_image_mappings,
+                            [id]: event.target.value,
+                          },
+                        }))}
+                      >
+                        <option value="">No slider image</option>
+                        {availableColorImages.map((image) => (
+                          <option key={image.value} value={image.value}>{image.label}</option>
+                        ))}
+                      </CFormSelect>
+
+                      <div className="product-color-image-preview">
+                        {mappedImage ? (
+                          <img src={mappedImage.url} alt="" />
+                        ) : (
+                          <span>No image selected</span>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
           )}
 
           <div className="mb-3">

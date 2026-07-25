@@ -13,6 +13,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -314,7 +315,11 @@ class ProductController extends Controller
             'faqs.*.question' => ['required_with:faqs', 'string', 'max:1000'],
             'faqs.*.answer' => ['required_with:faqs', 'string', 'max:5000'],
             'color_ids' => ['nullable', 'array'],
-            'color_ids.*' => ['integer', 'exists:colors,id'],
+            'color_ids.*' => ['integer', 'distinct', 'exists:colors,id'],
+            'color_image_ids' => ['nullable', 'array'],
+            'color_image_ids.*' => ['nullable', 'integer'],
+            'color_image_indexes' => ['nullable', 'array'],
+            'color_image_indexes.*' => ['nullable', 'integer', 'min:0'],
             'measurement_ids' => ['nullable', 'array'],
             'measurement_ids.*' => ['integer', 'exists:measurements,id'],
             'measurement_values' => ['nullable', 'array'],
@@ -350,13 +355,25 @@ class ProductController extends Controller
             }
         }
 
+        $this->validateColorImageMappings(
+            $validated,
+            null,
+            count($request->file('images', []))
+        );
+
         $product = Product::create($validated);
-        $product->colors()->sync($validated['color_ids'] ?? []);
         $this->syncMeasurements($product, $validated['measurement_ids'] ?? [], $validated['measurement_values'] ?? []);
         $this->syncSizeOptions($product, $validated['size_option_ids'] ?? []);
         $this->syncTypeDetails($product, $validated);
         $this->syncFaqs($product, $validated['faqs'] ?? []);
-        $this->storeImages($product, $request->file('images', []), $validated['image_alt_texts'] ?? []);
+        $newImages = $this->storeImages($product, $request->file('images', []), $validated['image_alt_texts'] ?? []);
+        $this->syncColors(
+            $product,
+            $validated['color_ids'] ?? [],
+            $validated['color_image_ids'] ?? [],
+            $validated['color_image_indexes'] ?? [],
+            $newImages
+        );
         if (! empty($validated['event_id'])) {
             $this->applyEventDiscount($product, (int) $validated['event_id']);
         } else {
@@ -439,7 +456,11 @@ class ProductController extends Controller
             'remove_image_ids' => ['nullable', 'array'],
             'remove_image_ids.*' => ['integer'],
             'color_ids' => ['nullable', 'array'],
-            'color_ids.*' => ['integer', 'exists:colors,id'],
+            'color_ids.*' => ['integer', 'distinct', 'exists:colors,id'],
+            'color_image_ids' => ['nullable', 'array'],
+            'color_image_ids.*' => ['nullable', 'integer'],
+            'color_image_indexes' => ['nullable', 'array'],
+            'color_image_indexes.*' => ['nullable', 'integer', 'min:0'],
             'measurement_ids' => ['nullable', 'array'],
             'measurement_ids.*' => ['integer', 'exists:measurements,id'],
             'measurement_values' => ['nullable', 'array'],
@@ -497,8 +518,13 @@ class ProductController extends Controller
             }
         }
 
+        $this->validateColorImageMappings(
+            $validated,
+            $product,
+            count($request->file('images', []))
+        );
+
         $product->update($updateData);
-        $product->colors()->sync($validated['color_ids'] ?? []);
         $this->syncMeasurements($product, $validated['measurement_ids'] ?? [], $validated['measurement_values'] ?? []);
         $this->syncSizeOptions($product, $validated['size_option_ids'] ?? []);
         $this->syncTypeDetails($product, $validated);
@@ -507,7 +533,14 @@ class ProductController extends Controller
         foreach ($validated['existing_image_alt_texts'] ?? [] as $imageId => $altText) {
             $product->images()->whereKey($imageId)->update(['alt_text' => $altText ?: null]);
         }
-        $this->storeImages($product, $request->file('images', []), $validated['image_alt_texts'] ?? []);
+        $newImages = $this->storeImages($product, $request->file('images', []), $validated['image_alt_texts'] ?? []);
+        $this->syncColors(
+            $product,
+            $validated['color_ids'] ?? [],
+            $validated['color_image_ids'] ?? [],
+            $validated['color_image_indexes'] ?? [],
+            $newImages
+        );
         if (! empty($validated['event_id'])) {
             $this->applyEventDiscount($product, (int) $validated['event_id']);
         } else {
@@ -546,22 +579,141 @@ class ProductController extends Controller
         ]);
     }
 
-    protected function storeImages(Product $product, array $images, array $altTexts = []): void
+    protected function validateColorImageMappings(
+        array $validated,
+        ?Product $product,
+        int $newImageCount
+    ): void {
+        $colorIds = collect($validated['color_ids'] ?? [])
+            ->map(fn (mixed $colorId): int => (int) $colorId)
+            ->unique()
+            ->values();
+        $existingMappings = $validated['color_image_ids'] ?? [];
+        $newMappings = $validated['color_image_indexes'] ?? [];
+        $mappingColorIds = collect(array_keys($existingMappings))
+            ->merge(array_keys($newMappings))
+            ->map(fn (mixed $colorId): int => (int) $colorId)
+            ->unique();
+        $errors = [];
+
+        foreach ($mappingColorIds as $colorId) {
+            if (! $colorIds->contains($colorId)) {
+                $errors["color_image_ids.{$colorId}"][] = 'An image can only be connected to a selected color.';
+            }
+        }
+
+        $removedImageIds = collect($validated['remove_image_ids'] ?? [])
+            ->map(fn (mixed $imageId): int => (int) $imageId);
+        $validExistingImageIds = $product
+            ? $product->images()->pluck('id')->map(fn (mixed $imageId): int => (int) $imageId)
+            : collect();
+
+        foreach ($colorIds as $colorId) {
+            $hasExistingMapping = array_key_exists($colorId, $existingMappings);
+            $hasNewMapping = array_key_exists($colorId, $newMappings);
+            $existingImageId = $hasExistingMapping && $existingMappings[$colorId] !== null
+                ? (int) $existingMappings[$colorId]
+                : null;
+            $newImageIndex = $hasNewMapping && $newMappings[$colorId] !== null
+                ? (int) $newMappings[$colorId]
+                : null;
+
+            if ($existingImageId && $newImageIndex !== null) {
+                $errors["color_image_ids.{$colorId}"][] = 'Choose either an existing image or a new upload, not both.';
+            }
+
+            if (
+                $existingImageId
+                && (
+                    ! $validExistingImageIds->contains($existingImageId)
+                    || $removedImageIds->contains($existingImageId)
+                )
+            ) {
+                $errors["color_image_ids.{$colorId}"][] = 'The selected image must belong to this product and must not be marked for removal.';
+            }
+
+            if ($newImageIndex !== null && ($newImageIndex < 0 || $newImageIndex >= $newImageCount)) {
+                $errors["color_image_indexes.{$colorId}"][] = 'The selected new image is not part of this upload.';
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * @param  array<int, int|string>  $colorIds
+     * @param  array<int|string, int|null>  $existingImageMappings
+     * @param  array<int|string, int|null>  $newImageMappings
+     * @param  Collection<int, ProductImage>  $newImages
+     */
+    protected function syncColors(
+        Product $product,
+        array $colorIds,
+        array $existingImageMappings,
+        array $newImageMappings,
+        Collection $newImages
+    ): void {
+        $currentMappings = $product->colors()
+            ->get()
+            ->mapWithKeys(fn ($color): array => [
+                (int) $color->id => $color->pivot->product_image_id
+                    ? (int) $color->pivot->product_image_id
+                    : null,
+            ]);
+        $validImageIds = $product->images()
+            ->pluck('id')
+            ->map(fn (mixed $imageId): int => (int) $imageId);
+        $sync = [];
+
+        foreach (collect($colorIds)->map(fn (mixed $colorId): int => (int) $colorId)->unique() as $colorId) {
+            $hasExistingMapping = array_key_exists($colorId, $existingImageMappings);
+            $hasNewMapping = array_key_exists($colorId, $newImageMappings);
+            $productImageId = null;
+
+            if ($hasNewMapping && $newImageMappings[$colorId] !== null) {
+                $productImageId = $newImages->get((int) $newImageMappings[$colorId])?->id;
+            } elseif ($hasExistingMapping) {
+                $productImageId = $existingImageMappings[$colorId] !== null
+                    ? (int) $existingImageMappings[$colorId]
+                    : null;
+            } else {
+                $currentImageId = $currentMappings->get($colorId);
+                $productImageId = $currentImageId && $validImageIds->contains($currentImageId)
+                    ? $currentImageId
+                    : null;
+            }
+
+            $sync[$colorId] = ['product_image_id' => $productImageId];
+        }
+
+        $product->colors()->sync($sync);
+    }
+
+    /**
+     * @return Collection<int, ProductImage>
+     */
+    protected function storeImages(Product $product, array $images, array $altTexts = []): Collection
     {
+        $storedImages = collect();
+
         if (count($images) === 0) {
-            return;
+            return $storedImages;
         }
 
         $currentOrder = (int) ($product->images()->max('sort_order') ?? -1);
         foreach ($images as $index => $image) {
             $currentOrder++;
             $path = $image->store('products', 'public');
-            $product->images()->create([
+            $storedImages->push($product->images()->create([
                 'path' => $path,
                 'alt_text' => ($altTexts[$index] ?? null) ?: $product->name,
                 'sort_order' => $currentOrder,
-            ]);
+            ]));
         }
+
+        return $storedImages;
     }
 
     protected function removeImages(Product $product, Collection $removeImageIds): void

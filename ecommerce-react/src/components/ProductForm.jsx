@@ -29,6 +29,7 @@ import {
   fetchEvents,
   updateProduct,
 } from '../api/client';
+import { isStandardMeasurementName } from '../utils/productMeasurements';
 import { isProductInStock } from '../utils/productStock';
 
 const initialForm = {
@@ -147,7 +148,10 @@ export default function ProductForm({ productId = null }) {
         setSubCategories(subCategoryList);
         setBrands(Array.isArray(brandsData) ? brandsData : []);
         setColors(Array.isArray(colorsData) ? colorsData : []);
-        setMeasurements(Array.isArray(measurementsData) ? measurementsData : []);
+        const additionalMeasurements = Array.isArray(measurementsData)
+          ? measurementsData.filter((measurement) => !isStandardMeasurementName(measurement.name))
+          : [];
+        setMeasurements(additionalMeasurements);
         setSizeOptions(Array.isArray(sizeOptionsData) ? sizeOptionsData : []);
         setEvents(Array.isArray(eventsData) ? eventsData : []);
 
@@ -184,12 +188,18 @@ export default function ProductForm({ productId = null }) {
                 ]))
               : {},
             measurement_ids: Array.isArray(product.measurements)
-              ? product.measurements.map((measurement) => String(measurement.id))
+              ? product.measurements
+                .filter((measurement) => !isStandardMeasurementName(measurement.name))
+                .map((measurement) => String(measurement.id))
               : [],
-            measurement_values: Array.isArray(product.measurements) ? Object.fromEntries(product.measurements.map((measurement) => [String(measurement.id), {
-              value: measurement.pivot?.value ?? measurement.value ?? '',
-              unit: measurement.pivot?.unit ?? measurement.unit ?? '',
-            }])) : {},
+            measurement_values: Array.isArray(product.measurements) ? Object.fromEntries(
+              product.measurements
+                .filter((measurement) => !isStandardMeasurementName(measurement.name))
+                .map((measurement) => [String(measurement.id), {
+                  value: measurement.pivot?.value ?? measurement.value ?? '',
+                  unit: measurement.pivot?.unit ?? measurement.unit ?? '',
+                }])
+            ) : {},
             size_option_ids: Array.isArray(product.size_options) ? product.size_options.map((option) => String(option.id)) : [],
             is_active: product.is_active,
           });
@@ -550,7 +560,7 @@ export default function ProductForm({ productId = null }) {
               />
             </CCol>
             <CCol md={6} className="mb-3">
-              <label className="form-label">Measurements (multiple)</label>
+              <label className="form-label">Additional measurements (multiple)</label>
               <Select
                 isMulti
                 options={measurements.map((measurement) => ({
@@ -599,6 +609,9 @@ export default function ProductForm({ productId = null }) {
                 onChange={(selected) => setForm((prev) => ({ ...prev, size_option_ids: selected ? selected.map((item) => item.value) : [] }))}
                 classNamePrefix="select"
               />
+              <div className="form-text">
+                Use the physical or product-type fields above for length, width, height, and weight.
+              </div>
             </CCol>
             <CCol md={6} className="mb-3">
               <label className="form-label">Product Images (Multiple)</label>

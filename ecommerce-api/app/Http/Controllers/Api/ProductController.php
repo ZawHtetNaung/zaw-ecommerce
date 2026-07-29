@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Brand;
+use App\Models\Measurement;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\SubCategory;
@@ -17,6 +18,8 @@ use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
+    private const STANDARD_MEASUREMENT_NAMES = ['length', 'width', 'height', 'weight'];
+
     public function publicIndex(Request $request)
     {
         $perPage = min(max($request->integer('per_page', 8), 4), 32);
@@ -329,6 +332,7 @@ class ProductController extends Controller
             'size_option_ids.*' => ['integer', 'exists:size_options,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+        $this->validateAdditionalMeasurements($validated['measurement_ids'] ?? []);
 
         $validated['product_type'] = $validated['product_type'] ?? 'furniture';
         $validated['selling_method'] = $validated['selling_method'] ?? 'per_item';
@@ -470,6 +474,8 @@ class ProductController extends Controller
             'size_option_ids.*' => ['integer', 'exists:size_options,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
+        $this->validateAdditionalMeasurements($validated['measurement_ids'] ?? []);
+
         $validated['product_type'] = $validated['product_type'] ?? $product->product_type ?? 'furniture';
         $validated['selling_method'] = $validated['selling_method'] ?? $product->selling_method ?? 'per_item';
         $validated['dimension_unit'] = $validated['dimension_unit'] ?? $product->dimension_unit ?? 'cm';
@@ -780,6 +786,32 @@ class ProductController extends Controller
             ];
         }
         $product->measurements()->sync($sync);
+    }
+
+    protected function validateAdditionalMeasurements(array $measurementIds): void
+    {
+        if ($measurementIds === []) {
+            return;
+        }
+
+        $reserved = Measurement::query()
+            ->whereKey(array_values(array_unique(array_map('intval', $measurementIds))))
+            ->get(['id', 'name'])
+            ->filter(fn (Measurement $measurement) => in_array(
+                Str::lower(trim($measurement->name)),
+                self::STANDARD_MEASUREMENT_NAMES,
+                true
+            ));
+
+        if ($reserved->isEmpty()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'measurement_ids' => [
+                'Length, width, height, and weight must use the canonical physical or product-type fields.',
+            ],
+        ]);
     }
 
     protected function syncSizeOptions(Product $product, array $sizeOptionIds): void

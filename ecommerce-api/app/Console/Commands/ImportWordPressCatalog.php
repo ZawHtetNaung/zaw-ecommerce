@@ -172,7 +172,7 @@ class ImportWordPressCatalog extends Command
                     }
                     $product->update(['image_path' => $product->images()->value('path')]);
                     $this->syncColors($product, $colorTerms[$id] ?? [], $uploads);
-                    $this->syncMeasurements($product, $postMeta);
+                    $this->syncPhysicalMeasurements($product, $postMeta);
                     $imported++;
                     $bar->advance();
                 }
@@ -457,26 +457,35 @@ class ImportWordPressCatalog extends Command
         $product->colors()->sync(array_values(array_unique($ids)));
     }
 
-    private function syncMeasurements(Product $product, array $meta): void
+    private function syncPhysicalMeasurements(Product $product, array $meta): void
     {
-        $dimensionUnit = 'cm';
-        $values = [
-            'Length' => $meta['_length'] ?? null,
-            'Width' => $meta['_width'] ?? null,
-            'Height' => $meta['_height'] ?? null,
+        $data = [
+            'physical_length' => $this->measurementNumber($meta['_length'] ?? null),
+            'physical_width' => $this->measurementNumber($meta['_width'] ?? null),
+            'physical_height' => $this->measurementNumber($meta['_height'] ?? null),
+            'dimension_unit' => 'cm',
         ];
-        $sync = [];
-        foreach ($values as $name => $value) {
-            if ($value === null || $value === '' || ! is_numeric($value)) {
-                continue;
-            }
-            $measurement = Measurement::firstOrCreate(
-                ['name' => $name],
-                ['unit' => $dimensionUnit, 'value' => null, 'is_active' => true]
-            );
-            $sync[$measurement->id] = ['value' => (float) $value, 'unit' => $dimensionUnit];
+
+        $weight = $this->measurementNumber($meta['_weight'] ?? null);
+        if ($weight !== null && $weight <= 500) {
+            $data['physical_weight'] = $weight;
+            $data['weight_unit'] = 'kg';
         }
-        $product->measurements()->sync($sync);
+
+        $product->update($data);
+
+        $standardMeasurementIds = Measurement::query()
+            ->get(['id', 'name'])
+            ->filter(fn (Measurement $measurement) => in_array(
+                Str::lower(trim($measurement->name)),
+                ['length', 'width', 'height', 'weight'],
+                true
+            ))
+            ->pluck('id');
+
+        if ($standardMeasurementIds->isNotEmpty()) {
+            $product->measurements()->detach($standardMeasurementIds);
+        }
     }
 
     private function importBanners(string $uploads): int
@@ -600,5 +609,10 @@ class ImportWordPressCatalog extends Command
     {
         $value = trim((string) $value);
         return $value === '' ? null : $value;
+    }
+
+    private function measurementNumber(mixed $value): ?float
+    {
+        return is_numeric($value) && (float) $value >= 0 ? (float) $value : null;
     }
 }

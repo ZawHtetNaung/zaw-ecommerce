@@ -9,6 +9,7 @@ import StorefrontHeader from '../components/StorefrontHeader';
 import RichTextContent from '../components/RichTextContent';
 import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
+import { buildProductMeasurements } from '../utils/productMeasurements';
 import { getProductPurchaseLimit, isProductInStock } from '../utils/productStock';
 
 const FALLBACK_IMAGE = '/messaraliving-logo.png';
@@ -288,46 +289,7 @@ export default function PublicProductDetailPage() {
     return [{ url: FALLBACK_IMAGE, alt: 'Messara Living' }];
   }, [product]);
 
-  const measurements = useMemo(() => {
-    if (!product) return [];
-    const rows = [];
-    const add = (label, value, unit = '') => {
-      if (value === null || value === undefined || value === '') return;
-      rows.push({ label, value: `${value}${unit ? ` ${unit}` : ''}` });
-    };
-
-    add('Length', product.physical_length, product.dimension_unit);
-    add('Width', product.physical_width, product.dimension_unit);
-    add('Height', product.physical_height, product.dimension_unit);
-    add('Weight', product.physical_weight, product.weight_unit);
-
-    (product.measurements || []).forEach((measurement) => {
-      add(
-        measurement.name,
-        measurement.pivot?.value ?? measurement.value,
-        measurement.pivot?.unit ?? measurement.unit,
-      );
-    });
-
-    if (product.flooring_detail) {
-      add('Piece length', product.flooring_detail.piece_length, product.dimension_unit);
-      add('Piece width', product.flooring_detail.piece_width, product.dimension_unit);
-      add('Thickness', product.flooring_detail.thickness, product.dimension_unit);
-      add('Coverage per box', product.flooring_detail.coverage_per_box, 'm²');
-      add('Pieces per box', product.flooring_detail.pieces_per_box);
-      add('Minimum order', product.flooring_detail.minimum_order, 'm²');
-    }
-
-    if (product.wallpaper_detail) {
-      add('Roll width', product.wallpaper_detail.roll_width, product.dimension_unit);
-      add('Roll length', product.wallpaper_detail.roll_length, product.dimension_unit);
-      add('Coverage per roll', product.wallpaper_detail.coverage_per_roll, 'm²');
-      add('Pattern repeat', product.wallpaper_detail.pattern_repeat, product.dimension_unit);
-      add('Pattern match', product.wallpaper_detail.match_type);
-    }
-
-    return rows;
-  }, [product]);
+  const measurements = useMemo(() => buildProductMeasurements(product), [product]);
 
   const hasDiscount = Number(product?.discount_price || 0) > 0;
   const discountPercentage = hasDiscount && Number(product?.price || 0) > 0

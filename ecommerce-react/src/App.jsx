@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
+import StorefrontLayout from './layouts/StorefrontLayout';
 import CategoriesPage from './pages/CategoriesPage';
 import ColorsPage from './pages/ColorsPage';
 import DashboardHomePage from './pages/DashboardHomePage';
@@ -38,25 +39,27 @@ export default function App() {
     <>
     <PageSeo />
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/categories/:categorySlug" element={<PublicCategoryPage />} />
-      <Route path="/product/:productSlug" element={<PublicProductDetailPage />} />
-      <Route path="/categories/:categorySlug/sub-categories/:subCategorySlug" element={<PublicSubCategoryProductsPage />} />
-      <Route
-        path="/categories/:categorySlug/sub-categories/:subCategorySlug/products/:productSlug"
-        element={<PublicProductDetailPage />}
-      />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/search" element={<SearchResultsPage />} />
-      <Route path="/services" element={<ServicesPage />} />
-      <Route path="/news" element={<NewsPage />} />
-      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/favourites" element={<ProtectedRoute><FavouritesPage /></ProtectedRoute>} />
+      <Route element={<StorefrontLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/categories/:categorySlug" element={<PublicCategoryPage />} />
+        <Route path="/product/:productSlug" element={<PublicProductDetailPage />} />
+        <Route path="/categories/:categorySlug/sub-categories/:subCategorySlug" element={<PublicSubCategoryProductsPage />} />
+        <Route
+          path="/categories/:categorySlug/sub-categories/:subCategorySlug/products/:productSlug"
+          element={<PublicProductDetailPage />}
+        />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/search" element={<SearchResultsPage />} />
+        <Route path="/services" element={<ServicesPage />} />
+        <Route path="/news" element={<NewsPage />} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/favourites" element={<ProtectedRoute><FavouritesPage /></ProtectedRoute>} />
+      </Route>
 
       <Route
         path="/dashboard"

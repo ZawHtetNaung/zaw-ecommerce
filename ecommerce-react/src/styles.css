@@ -6562,12 +6562,17 @@ body {
 }
 
 .pdp-title-row h1 {
+  display: block;
+  width: 100%;
   margin: 0;
+  overflow: hidden;
   color: #111;
-  font-size: clamp(31px, 3.25vw, 52px);
+  font-size: clamp(24px, 2.35vw, 36px);
   font-weight: 850;
-  letter-spacing: -0.045em;
-  line-height: 1.02;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pdp-short-description {
@@ -7454,7 +7459,7 @@ body {
   }
 
   .pdp-title-row h1 {
-    font-size: clamp(30px, 10vw, 42px);
+    font-size: clamp(23px, 7.5vw, 32px);
   }
 
   .pdp-brand-mark {
@@ -7909,5 +7914,201 @@ body {
 
   .pdp-image-viewer-canvas img {
     transition: none;
+  }
+}
+
+/* Shared footer for every public storefront route. */
+.storefront-layout {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.storefront-layout > :first-child {
+  flex: 1 0 auto;
+}
+
+.storefront-footer {
+  position: relative;
+  flex: 0 0 auto;
+  overflow: hidden;
+  padding: clamp(54px, 7vw, 92px) clamp(22px, 5vw, 76px) 24px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(226, 33, 28, 0.2), transparent 24%),
+    #111;
+  color: #fff;
+  font-family: 'Avenir Next', 'Manrope', 'Segoe UI', sans-serif;
+}
+
+.storefront-footer::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 5px;
+  background: var(--brand-red);
+  content: '';
+}
+
+.storefront-footer-main {
+  display: grid;
+  width: 100%;
+  max-width: 1540px;
+  grid-template-columns: minmax(280px, 1.4fr) repeat(3, minmax(145px, 0.65fr));
+  gap: clamp(34px, 5vw, 90px);
+  margin: 0 auto;
+  padding-bottom: clamp(46px, 6vw, 76px);
+}
+
+.storefront-footer-brand {
+  display: grid;
+  max-width: 410px;
+  align-content: start;
+  gap: 20px;
+}
+
+.storefront-footer-brand > a {
+  display: inline-flex;
+  width: fit-content;
+  background: #fff;
+}
+
+.storefront-footer-brand img {
+  display: block;
+  width: clamp(180px, 17vw, 250px);
+  height: 92px;
+  padding: 9px 14px;
+  border: 0;
+  object-fit: contain;
+}
+
+.storefront-footer-brand p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.storefront-footer-location {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.storefront-footer-location svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.storefront-footer-column {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+}
+
+.storefront-footer-column strong {
+  margin-bottom: 8px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.storefront-footer-column a {
+  position: relative;
+  width: fit-content;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.storefront-footer-column a::after {
+  position: absolute;
+  right: 0;
+  bottom: -4px;
+  left: 0;
+  height: 1px;
+  background: var(--brand-red);
+  content: '';
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms ease;
+}
+
+.storefront-footer-column a:hover,
+.storefront-footer-column a:focus-visible {
+  color: #fff;
+  outline: none;
+  transform: translateX(3px);
+}
+
+.storefront-footer-column a:hover::after,
+.storefront-footer-column a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.storefront-footer-bottom {
+  display: flex;
+  width: 100%;
+  max-width: 1540px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 auto;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .storefront-footer-main {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .storefront-footer-brand {
+    max-width: none;
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .storefront-footer {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .storefront-footer-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 38px 24px;
+  }
+
+  .storefront-footer-column:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .storefront-footer-brand img {
+    width: 195px;
+    height: 78px;
+  }
+
+  .storefront-footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
   }
 }

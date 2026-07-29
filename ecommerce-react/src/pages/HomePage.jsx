@@ -896,22 +896,6 @@ export default function HomePage() {
         </a>
       </section>
 
-      <footer className="home-footer">
-        <div>
-          <strong>MessaraLiving</strong>
-          <p>Premium furniture, cleaner browsing, and a stronger modern ecommerce presentation.</p>
-        </div>
-        <div>
-          <span>Support</span>
-          <span>Shipping</span>
-          <span>Returns</span>
-        </div>
-        <div>
-          <span>Privacy</span>
-          <span>Terms</span>
-        </div>
-      </footer>
-
       {authModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="auth-modal">

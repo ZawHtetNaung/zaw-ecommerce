@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   fetchPublicProduct,
@@ -29,6 +29,44 @@ function productImageError(event) {
   if (event.currentTarget.src.endsWith(FALLBACK_IMAGE)) return;
   event.currentTarget.src = FALLBACK_IMAGE;
   event.currentTarget.classList.add('is-fallback');
+}
+
+function FittedProductTitle({ name }) {
+  const titleRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const title = titleRef.current;
+    if (!title) return undefined;
+
+    let animationFrame = 0;
+    const fitTitle = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        title.style.fontSize = '';
+        const availableWidth = title.clientWidth;
+        const naturalWidth = title.scrollWidth;
+        if (!availableWidth || naturalWidth <= availableWidth) return;
+
+        const naturalSize = Number.parseFloat(window.getComputedStyle(title).fontSize);
+        const fittedSize = Math.max(18, naturalSize * (availableWidth / naturalWidth) * 0.98);
+        title.style.fontSize = `${fittedSize}px`;
+      });
+    };
+
+    fitTitle();
+    document.fonts?.ready.then(fitTitle);
+    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fitTitle);
+    resizeObserver?.observe(title.parentElement);
+    window.addEventListener('resize', fitTitle);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', fitTitle);
+    };
+  }, [name]);
+
+  return <h1 ref={titleRef} title={name}>{name}</h1>;
 }
 
 function ProductNavigation({ previousProduct, nextProduct, allProductsPath, productPath }) {
@@ -505,7 +543,7 @@ export default function PublicProductDetailPage() {
 
                 <div className="pdp-title-row">
                   <div>
-                    <h1>{product.name}</h1>
+                    <FittedProductTitle name={product.name} />
                     {summaryExcerpt && <p className="pdp-short-description">{summaryExcerpt}</p>}
                     {product.sku && <span className="pdp-article-number">Article number: {product.sku}</span>}
                   </div>

@@ -6,6 +6,107 @@ const paginationComponentOptions = {
   rangeSeparatorText: 'of',
 };
 
+const adminTableStyles = {
+  table: {
+    style: {
+      color: 'var(--admin-text, #171717)',
+      backgroundColor: 'var(--admin-surface, #ffffff)',
+    },
+  },
+  tableWrapper: {
+    style: {
+      backgroundColor: 'var(--admin-surface, #ffffff)',
+    },
+  },
+  responsiveWrapper: {
+    style: {
+      backgroundColor: 'var(--admin-surface, #ffffff)',
+    },
+  },
+  subHeader: {
+    style: {
+      minHeight: '68px',
+      padding: '8px 0 14px',
+      color: 'var(--admin-text, #171717)',
+      backgroundColor: 'var(--admin-surface, #ffffff)',
+    },
+  },
+  headRow: {
+    style: {
+      minHeight: '54px',
+      color: 'var(--admin-muted, #6b7280)',
+      backgroundColor: 'var(--admin-surface-soft, #f7f7f8)',
+      borderTop: '1px solid var(--admin-border, #e5e7eb)',
+      borderBottom: '1px solid var(--admin-border, #e5e7eb)',
+    },
+  },
+  headCells: {
+    style: {
+      paddingLeft: '16px',
+      paddingRight: '16px',
+      fontSize: '11px',
+      fontWeight: 800,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+    },
+  },
+  rows: {
+    style: {
+      minHeight: '62px',
+      color: 'var(--admin-text, #171717)',
+      backgroundColor: 'var(--admin-surface, #ffffff)',
+      borderBottomColor: 'var(--admin-border, #e5e7eb)',
+    },
+    stripedStyle: {
+      color: 'var(--admin-text, #171717)',
+      backgroundColor: 'var(--admin-surface-soft, #f7f7f8)',
+    },
+    highlightOnHoverStyle: {
+      color: 'var(--admin-text, #171717)',
+      backgroundColor: 'var(--admin-hover, #f2f3f5)',
+      outline: 'none',
+    },
+  },
+  cells: {
+    style: {
+      paddingLeft: '16px',
+      paddingRight: '16px',
+    },
+  },
+  pagination: {
+    style: {
+      minHeight: '64px',
+      color: 'var(--admin-muted, #6b7280)',
+      backgroundColor: 'var(--admin-surface, #ffffff)',
+      borderTop: '1px solid var(--admin-border, #e5e7eb)',
+    },
+    pageButtonsStyle: {
+      color: 'var(--admin-text, #171717)',
+      fill: 'var(--admin-text, #171717)',
+      borderRadius: '10px',
+    },
+  },
+  progress: {
+    style: {
+      color: 'var(--admin-text, #171717)',
+      backgroundColor: 'var(--admin-surface, #ffffff)',
+    },
+  },
+  noData: {
+    style: {
+      minHeight: '140px',
+      color: 'var(--admin-muted, #6b7280)',
+      backgroundColor: 'var(--admin-surface, #ffffff)',
+    },
+  },
+  expanderRow: {
+    style: {
+      color: 'var(--admin-text, #171717)',
+      backgroundColor: 'var(--admin-surface-soft, #f7f7f8)',
+    },
+  },
+};
+
 export default function AppDataTable({ columns, data, progressPending = false, onRowClicked = undefined, searchPlaceholder = 'Search table...' }) {
   const [search, setSearch] = useState('');
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
@@ -46,8 +147,10 @@ export default function AppDataTable({ columns, data, progressPending = false, o
 
   return (
     <DataTable
+      className="admin-data-table"
       columns={visibleColumns}
       data={filteredData}
+      customStyles={adminTableStyles}
       progressPending={progressPending}
       onRowClicked={onRowClicked}
       pagination

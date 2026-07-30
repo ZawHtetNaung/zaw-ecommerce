@@ -86,4 +86,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(QuotationRequest::class);
     }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
 }

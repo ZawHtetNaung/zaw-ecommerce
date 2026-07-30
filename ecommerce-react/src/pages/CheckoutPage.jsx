@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchCheckoutQuote } from '../api/client';
+import { fetchCheckoutQuote, placeCheckoutOrder } from '../api/client';
 import StorefrontHeader from '../components/StorefrontHeader';
 import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
@@ -24,15 +24,15 @@ function money(value) {
   return `AED ${Number(value || 0).toFixed(2)}`;
 }
 
-function requestMessage(error) {
+function requestMessage(error, fallback = 'Unable to calculate delivery right now.') {
   const validationErrors = error.response?.data?.errors;
   if (validationErrors) return Object.values(validationErrors).flat()[0];
-  return error.response?.data?.message || 'Unable to calculate delivery right now.';
+  return error.response?.data?.message || fallback;
 }
 
 export default function CheckoutPage() {
   const { user, isAuthenticated } = useAuth();
-  const { cart, loading } = useStore();
+  const { cart, loading, refreshStore } = useStore();
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -46,6 +46,9 @@ export default function CheckoutPage() {
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState('');
+  const [orderError, setOrderError] = useState('');
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState(null);
 
   const items = cart.items || [];
   const hasUnavailableItems = items.some((item) => !isCartItemAvailable(item));
@@ -103,6 +106,33 @@ export default function CheckoutPage() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
+  async function submitOrder(event) {
+    event.preventDefault();
+    if (!isAuthenticated || !quoteCanCheckout || placingOrder) return;
+
+    setPlacingOrder(true);
+    setOrderError('');
+
+    try {
+      const response = await placeCheckoutOrder({
+        customer_name: form.full_name,
+        email: form.email,
+        phone: form.phone,
+        emirate_code: form.emirate_code,
+        city_area: form.city_area,
+        address_line_1: form.address_line_1,
+        address_line_2: form.address_line_2 || null,
+        delivery_notes: form.notes || null,
+      });
+      setCompletedOrder(response.order);
+      refreshStore().catch(() => {});
+    } catch (error) {
+      setOrderError(requestMessage(error, 'Unable to place your order right now.'));
+    } finally {
+      setPlacingOrder(false);
+    }
+  }
+
   const accountChoicePanel = !isAuthenticated ? (
     <section className="checkout-account-choice" aria-labelledby="checkout-account-title">
       <div className="checkout-account-copy">
@@ -110,7 +140,7 @@ export default function CheckoutPage() {
         <div>
           <span className="store-eyebrow">Your account</span>
           <h2 id="checkout-account-title">Continue with your Messara Living account</h2>
-          <p>Log in or create an account before payment. Your cart and delivery details will stay ready while you continue.</p>
+          <p>Log in or create an account before placing the order. Your cart and delivery details will stay ready while you continue.</p>
         </div>
       </div>
       <div className="checkout-account-actions">
@@ -119,6 +149,30 @@ export default function CheckoutPage() {
       </div>
     </section>
   ) : null;
+
+  if (completedOrder) {
+    return (
+      <div className="storefront-page">
+        <StorefrontHeader />
+        <main className="store-page-shell checkout-page">
+          <section className="checkout-order-success">
+            <span className="checkout-order-success-mark" aria-hidden="true">✓</span>
+            <span className="store-eyebrow">Order received</span>
+            <h1>Thank you, {completedOrder.customer_name}.</h1>
+            <p>Your order is now in the Messara Living admin system. Our team will confirm availability, delivery, and payment with you.</p>
+            <div>
+              <span>Order reference</span>
+              <strong>{completedOrder.reference}</strong>
+            </div>
+            <div className="checkout-order-success-actions">
+              <Link to="/search" className="store-primary-button">Continue shopping</Link>
+              <Link to="/" className="checkout-secondary-button">Return home</Link>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -174,8 +228,9 @@ export default function CheckoutPage() {
 
             {checkoutHasUnavailableItems && <div className="store-alert error">Remove unavailable products from your cart before continuing.</div>}
             {quoteError && <div className="store-alert error">{quoteError}</div>}
+            {orderError && <div className="store-alert error">{orderError}</div>}
 
-            <form className="checkout-form" onSubmit={(event) => event.preventDefault()}>
+            <form id="checkout-order-form" className="checkout-form" onSubmit={submitOrder}>
               <label>Full name<input name="full_name" value={form.full_name} onChange={updateField} autoComplete="name" required /></label>
               <label>Email address<input type="email" name="email" value={form.email} onChange={updateField} autoComplete="email" required /></label>
               <label>Phone number<input type="tel" name="phone" value={form.phone} onChange={updateField} autoComplete="tel" placeholder="+971" required /></label>
@@ -210,8 +265,15 @@ export default function CheckoutPage() {
             {!quote?.shipping?.paid_shipping_override && Number(quote?.shipping?.amount_until_free_shipping) > 0 && <div className="checkout-delivery-note">Add {money(quote.shipping.amount_until_free_shipping)} more in merchandise for free delivery to this area.</div>}
             {quote?.shipping?.is_free && <div className="checkout-delivery-note success">Free delivery unlocked for this area.</div>}
 
-            <button type="button" className="store-primary-button" disabled>{quoteLoading ? 'Calculating delivery...' : checkoutHasUnavailableItems ? 'Unavailable item in cart' : !isAuthenticated ? 'Log in before payment' : quoteCanCheckout ? 'Delivery quote ready' : form.emirate_code ? 'Delivery unavailable' : 'Select a delivery area'}</button>
-            <small>{isAuthenticated ? 'Delivery quoting is ready. Order placement and online payment are not connected yet.' : 'You can complete the address and see delivery pricing now. Log in or create an account before payment.'}</small>
+            <button
+              type="submit"
+              form="checkout-order-form"
+              className="store-primary-button"
+              disabled={placingOrder || quoteLoading || checkoutHasUnavailableItems || !isAuthenticated || !quoteCanCheckout}
+            >
+              {placingOrder ? 'Placing order...' : quoteLoading ? 'Calculating delivery...' : checkoutHasUnavailableItems ? 'Unavailable item in cart' : !isAuthenticated ? 'Log in before placing order' : quoteCanCheckout ? 'Place order' : form.emirate_code ? 'Delivery unavailable' : 'Select a delivery area'}
+            </button>
+            <small>{isAuthenticated ? 'Your order will be saved for the Messara Living team to confirm. Payment is arranged after confirmation.' : 'You can complete the address and see delivery pricing now. Log in or create an account before placing the order.'}</small>
           </aside>
         </div>
       </main>

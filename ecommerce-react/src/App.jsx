@@ -16,6 +16,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import EventsPage from './pages/EventsPage';
 import FavouritesPage from './pages/FavouritesPage';
 import NewsPage from './pages/NewsPage';
+import OrdersPage from './pages/OrdersPage';
 import ProductCreatePage from './pages/ProductCreatePage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import ProductEditPage from './pages/ProductEditPage';
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="banners" element={<BannersPage />} />
         <Route path="seo" element={<SeoPage />} />
         <Route path="quotations" element={<QuotationRequestsPage />} />
+        <Route path="orders" element={<OrdersPage />} />
         <Route path="ai-knowledge" element={<AiKnowledgePage />} />
         <Route path="products" element={<Navigate to="/dashboard/products/list" replace />} />
         <Route path="products/create" element={<ProductCreatePage />} />

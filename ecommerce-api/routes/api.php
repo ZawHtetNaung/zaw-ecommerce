@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\AiKnowledgeEntryController;
 use App\Http\Controllers\Api\AdminAccountController;
+use App\Http\Controllers\Api\AdminNotificationController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CartController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\GoogleReviewController;
 use App\Http\Controllers\Api\MeasurementController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\QuotationRequestController;
@@ -60,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::delete('/cart', [CartController::class, 'clear']);
     Route::post('/cart/merge', [CartController::class, 'merge']);
     Route::post('/checkout/quote', [CheckoutController::class, 'quote']);
+    Route::post('/checkout/orders', [OrderController::class, 'store']);
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/favorites', [FavoriteController::class, 'store']);
     Route::delete('/favorites/{product}', [FavoriteController::class, 'destroy']);
@@ -85,6 +88,10 @@ Route::middleware(['auth:sanctum', 'admin.approved'])->group(function (): void {
     Route::get('/quotation-requests/{quotationRequest}', [QuotationRequestController::class, 'show']);
     Route::patch('/quotation-requests/{quotationRequest}', [QuotationRequestController::class, 'update']);
     Route::delete('/quotation-requests/{quotationRequest}', [QuotationRequestController::class, 'destroy']);
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::patch('/orders/{order}', [OrderController::class, 'update']);
+    Route::get('/admin-notifications', [AdminNotificationController::class, 'index']);
     Route::apiResource('/ai-knowledge', AiKnowledgeEntryController::class);
 });
 

@@ -72,6 +72,7 @@ export default function QuotationRequestsPage() {
         item.id === quotation.id ? response.quotation : item
       )));
       setMessage(response.message);
+      window.dispatchEvent(new CustomEvent('admin:notifications-refresh'));
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Unable to update this quotation.');
     } finally {
@@ -88,6 +89,7 @@ export default function QuotationRequestsPage() {
       const response = await deleteQuotationRequest(quotation.id);
       setQuotations((current) => current.filter((item) => item.id !== quotation.id));
       setMessage(response.message);
+      window.dispatchEvent(new CustomEvent('admin:notifications-refresh'));
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Unable to delete this quotation.');
     } finally {

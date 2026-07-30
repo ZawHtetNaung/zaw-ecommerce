@@ -291,6 +291,11 @@ export async function fetchCheckoutQuote(emirateCode, guestItems = null) {
   return data;
 }
 
+export async function placeCheckoutOrder(payload) {
+  const { data } = await api.post('/api/checkout/orders', payload);
+  return data;
+}
+
 export async function submitQuotationRequest(payload) {
   const { data } = await api.post('/api/public/quotation-requests', payload);
   return data;
@@ -514,6 +519,28 @@ export async function updateQuotationRequest(quotationRequestId, payload) {
 
 export async function deleteQuotationRequest(quotationRequestId) {
   const { data } = await api.delete(`/api/quotation-requests/${quotationRequestId}`);
+  return data;
+}
+
+export async function fetchOrders() {
+  const { data } = await api.get('/api/orders');
+  return data;
+}
+
+export async function fetchOrder(orderId) {
+  const { data } = await api.get(`/api/orders/${orderId}`);
+  return data;
+}
+
+export async function updateOrder(orderId, payload) {
+  const { data } = await api.patch(`/api/orders/${orderId}`, payload);
+  return data;
+}
+
+export async function fetchAdminNotifications() {
+  const { data } = await api.get('/api/admin-notifications', {
+    globalLoading: false,
+  });
   return data;
 }
 

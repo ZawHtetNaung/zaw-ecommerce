@@ -11,7 +11,7 @@ class UserController extends Controller
     {
         return response()->json(
             User::query()
-                ->select(['id', 'name', 'email', 'created_at'])
+                ->select(['id', 'name', 'email', 'phone', 'role', 'admin_status', 'created_at'])
                 ->latest()
                 ->get()
         );

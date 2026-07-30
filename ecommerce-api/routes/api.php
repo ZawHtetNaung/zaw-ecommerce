@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AiChatController;
+use App\Http\Controllers\Api\AiKnowledgeEntryController;
+use App\Http\Controllers\Api\AdminAccountController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CartController;
@@ -13,6 +16,7 @@ use App\Http\Controllers\Api\GoogleReviewController;
 use App\Http\Controllers\Api\MeasurementController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\QuotationRequestController;
 use App\Http\Controllers\Api\SeoController;
 use App\Http\Controllers\Api\SizeOptionController;
 use App\Http\Controllers\Api\SubCategoryController;
@@ -20,10 +24,14 @@ use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/customer/register', [AuthController::class, 'customerRegister'])->middleware('throttle:5,1');
+Route::post('/customer/login', [AuthController::class, 'customerLogin'])->middleware('throttle:10,1');
+Route::post('/admin/register', [AuthController::class, 'adminRegister'])->middleware('throttle:5,1');
+Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('throttle:10,1');
+Route::post('/register', [AuthController::class, 'customerRegister'])->middleware('throttle:5,1');
+Route::post('/login', [AuthController::class, 'customerLogin'])->middleware('throttle:10,1');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 Route::get('/public/banners', [BannerController::class, 'publicIndex']);
 Route::get('/public/brands', [BrandController::class, 'publicIndex']);
 Route::get('/public/categories', [CategoryController::class, 'publicIndex']);
@@ -38,6 +46,8 @@ Route::get('/public/events', [EventController::class, 'publicIndex']);
 Route::get('/public/google-reviews', [GoogleReviewController::class, 'publicIndex']);
 Route::get('/public/seo', [SeoController::class, 'publicShow']);
 Route::post('/public/checkout/quote', [CheckoutController::class, 'guestQuote']);
+Route::post('/public/quotation-requests', [QuotationRequestController::class, 'publicStore']);
+Route::post('/public/ai-chat', [AiChatController::class, 'respond'])->middleware('throttle:20,1');
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/user', fn (Request $request) => $request->user());
@@ -53,6 +63,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/favorites', [FavoriteController::class, 'store']);
     Route::delete('/favorites/{product}', [FavoriteController::class, 'destroy']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
+
+Route::middleware(['auth:sanctum', 'admin.approved'])->group(function (): void {
     Route::get('/users', [UserController::class, 'index']);
     Route::apiResource('/categories', CategoryController::class);
     Route::apiResource('/sub-categories', SubCategoryController::class);
@@ -67,5 +81,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/seo', [SeoController::class, 'index']);
     Route::put('/seo/{seoPage}', [SeoController::class, 'update']);
     Route::put('/seo-robots', [SeoController::class, 'updateRobots']);
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/quotation-requests', [QuotationRequestController::class, 'index']);
+    Route::get('/quotation-requests/{quotationRequest}', [QuotationRequestController::class, 'show']);
+    Route::patch('/quotation-requests/{quotationRequest}', [QuotationRequestController::class, 'update']);
+    Route::delete('/quotation-requests/{quotationRequest}', [QuotationRequestController::class, 'destroy']);
+    Route::apiResource('/ai-knowledge', AiKnowledgeEntryController::class);
+});
+
+Route::middleware(['auth:sanctum', 'super.admin'])->group(function (): void {
+    Route::get('/admin-accounts', [AdminAccountController::class, 'index']);
+    Route::patch('/admin-accounts/{user}/status', [AdminAccountController::class, 'updateStatus']);
 });

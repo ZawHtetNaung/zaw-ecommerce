@@ -9,6 +9,7 @@ import {
   cibWhatsapp,
   cibYoutube,
   cilCart,
+  cilDescription,
   cilGlobeAlt,
   cilHeart,
   cilSearch,
@@ -16,18 +17,20 @@ import {
   cilUser,
 } from '@coreui/icons';
 import { fetchPublicProducts } from '../api/client';
+import CategoryMenu from './CategoryMenu';
 import { useAuth } from '../context/AuthContext';
 import { useStore } from '../context/StoreContext';
+import { buildWhatsAppUrl } from './WhatsAppLiveChat';
 
 function formatPrice(value) {
   return `AED ${Number(value || 0).toFixed(2)}`;
 }
 
-export default function StorefrontHeader({ onLogin, onRegister }) {
+export default function StorefrontHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user } = useAuth();
-  const { cartCount, favoriteCount } = useStore();
+  const { cartCount, favoriteCount, quotationCount } = useStore();
   const searchRef = useRef(null);
   const [query, setQuery] = useState(() => new URLSearchParams(location.search).get('q') || '');
   const [suggestions, setSuggestions] = useState([]);
@@ -85,9 +88,7 @@ export default function StorefrontHeader({ onLogin, onRegister }) {
   }
 
   function openAuth(type) {
-    if (type === 'login' && onLogin) onLogin();
-    else if (type === 'register' && onRegister) onRegister();
-    else navigate(type === 'login' ? '/login' : '/register');
+    navigate(type === 'login' ? '/login' : '/register');
   }
 
   return (
@@ -124,7 +125,15 @@ export default function StorefrontHeader({ onLogin, onRegister }) {
           <a className="social-dot" href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram"><CIcon icon={cibInstagram} /></a>
           <a className="social-dot" href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube"><CIcon icon={cibYoutube} /></a>
           <a className="social-dot" href="https://linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn"><CIcon icon={cibLinkedinIn} /></a>
-          <a className="social-dot" href="https://whatsapp.com" target="_blank" rel="noreferrer" aria-label="WhatsApp"><CIcon icon={cibWhatsapp} /></a>
+          <a
+            className="social-dot"
+            href={buildWhatsAppUrl(window.location.href, location.pathname.startsWith('/product/') || location.pathname.includes('/products/'))}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="WhatsApp"
+          >
+            <CIcon icon={cibWhatsapp} />
+          </a>
           <a className="social-dot" href="https://tiktok.com" target="_blank" rel="noreferrer" aria-label="TikTok"><CIcon icon={cibTiktok} /></a>
         </div>
 
@@ -193,7 +202,11 @@ export default function StorefrontHeader({ onLogin, onRegister }) {
 
         <div className="home-auth">
           {isAuthenticated ? (
-            <Link className="account-link" to="/profile" title="My profile">
+            <Link
+              className="account-link"
+              to={['admin', 'super_admin'].includes(user?.role) ? '/dashboard/overview' : '/profile'}
+              title={['admin', 'super_admin'].includes(user?.role) ? 'Admin dashboard' : 'My profile'}
+            >
               <CIcon icon={cilUser} />
               <span>{user?.name || 'My account'}</span>
             </Link>
@@ -207,6 +220,10 @@ export default function StorefrontHeader({ onLogin, onRegister }) {
 
         <div className="home-icons">
           <Link to="/services#delivery" title="Delivery services" aria-label="Delivery services"><CIcon icon={cilTruck} /></Link>
+          <Link to="/quotation" title="Quotation" aria-label={`Quotation, ${quotationCount} items`}>
+            <CIcon icon={cilDescription} />
+            {quotationCount > 0 && <span className="store-icon-badge">{quotationCount}</span>}
+          </Link>
           <Link to="/favourites" title="Favourites" aria-label={`Favourites, ${favoriteCount} items`}>
             <CIcon icon={cilHeart} />
             {favoriteCount > 0 && <span className="store-icon-badge">{favoriteCount}</span>}
@@ -217,6 +234,7 @@ export default function StorefrontHeader({ onLogin, onRegister }) {
           </Link>
         </div>
       </header>
+      <CategoryMenu />
     </div>
   );
 }

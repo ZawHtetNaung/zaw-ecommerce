@@ -39,6 +39,8 @@ export default function ForgotPasswordPage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              maxLength="255"
+              autoComplete="email"
               required
             />
           </label>

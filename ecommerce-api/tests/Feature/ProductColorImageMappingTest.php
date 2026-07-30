@@ -26,7 +26,7 @@ class ProductColorImageMappingTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs(User::factory()->create())->post('/api/products', [
+        $response = $this->actingAs(User::factory()->admin()->create())->post('/api/products', [
             'category_id' => $category->id,
             'sub_category_id' => $subCategory->id,
             'name' => 'Mapped Product',
@@ -60,7 +60,7 @@ class ProductColorImageMappingTest extends TestCase
         ]);
         $product->colors()->attach($color->id, ['product_image_id' => $image->id]);
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs(User::factory()->admin()->create())
             ->putJson("/api/products/{$product->id}", [
                 'category_id' => $category->id,
                 'sub_category_id' => $subCategory->id,
@@ -94,7 +94,7 @@ class ProductColorImageMappingTest extends TestCase
             'sort_order' => 0,
         ]);
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs(User::factory()->admin()->create())
             ->putJson("/api/products/{$product->id}", [
                 'category_id' => $category->id,
                 'sub_category_id' => $subCategory->id,

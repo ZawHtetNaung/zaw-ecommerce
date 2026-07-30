@@ -84,7 +84,7 @@ class ProductMeasurementNormalizationTest extends TestCase
 
     private function productDependencies(): array
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $category = Category::create([
             'name' => 'Outdoor Furniture',
             'slug' => 'outdoor-furniture',

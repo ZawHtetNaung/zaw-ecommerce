@@ -16,7 +16,7 @@ class ColorApiTest extends TestCase
     {
         Storage::fake('public');
 
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $token = $user->createToken('test_token')->plainTextToken;
 
         $create = $this->withHeader('Authorization', 'Bearer '.$token)

@@ -15,9 +15,12 @@ import { useAuth } from './AuthContext';
 
 export const GUEST_CART_STORAGE_KEY = 'messara_guest_cart_v1';
 export const GUEST_CART_STORAGE_VERSION = 1;
+export const QUOTATION_STORAGE_KEY = 'messara_quotation_v1';
+export const QUOTATION_STORAGE_VERSION = 1;
 
 const emptyCart = { items: [], count: 0, subtotal: '0.00' };
 const emptyFavorites = { favorites: [], count: 0 };
+const emptyQuotation = { items: [], count: 0, total: '0.00' };
 const StoreContext = createContext(null);
 
 function money(value) {
@@ -48,6 +51,7 @@ function productSnapshot(product) {
     id: Number(product.id),
     name: String(product.name || ''),
     slug: String(product.slug || ''),
+    sku: String(product.sku || ''),
     price: money(product.price),
     discount_price: Number(product.discount_price || 0) > 0 ? money(product.discount_price) : null,
     image_url: product.image_url || null,
@@ -121,6 +125,79 @@ function writeGuestCart(cart) {
   }
 }
 
+function quotationItemKey(productId, colorId = null, sizeId = null) {
+  return `${Number(productId)}:${Number(colorId) || 0}:${Number(sizeId) || 0}`;
+}
+
+function quotationOptionSnapshot(option) {
+  if (!option || typeof option !== 'object' || !Number.isFinite(Number(option.id))) return null;
+  return {
+    id: Number(option.id),
+    name: String(option.name || ''),
+  };
+}
+
+function quotationItem(product, quantity, options = {}) {
+  const snapshot = productSnapshot(product);
+  if (!snapshot) return null;
+
+  const selectedColor = quotationOptionSnapshot(options.color);
+  const selectedSize = quotationOptionSnapshot(options.size);
+  const normalizedQuantity = Math.max(1, Math.min(9999, Math.floor(Number(quantity || 1))));
+  const unitPrice = cartUnitPrice(snapshot);
+
+  return {
+    id: quotationItemKey(snapshot.id, selectedColor?.id, selectedSize?.id),
+    product_id: snapshot.id,
+    quantity: normalizedQuantity,
+    selected_color: selectedColor,
+    selected_size_option: selectedSize,
+    unit_price: money(unitPrice),
+    line_total: money(unitPrice * normalizedQuantity),
+    product: snapshot,
+  };
+}
+
+function buildQuotation(items) {
+  const normalizedItems = (Array.isArray(items) ? items : [])
+    .map((item) => quotationItem(item?.product, item?.quantity, {
+      color: item?.selected_color,
+      size: item?.selected_size_option,
+    }))
+    .filter(Boolean);
+
+  return {
+    items: normalizedItems,
+    count: normalizedItems.reduce((total, item) => total + item.quantity, 0),
+    total: money(normalizedItems.reduce((total, item) => total + Number(item.line_total), 0)),
+  };
+}
+
+function readQuotation() {
+  if (typeof window === 'undefined') return emptyQuotation;
+
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(QUOTATION_STORAGE_KEY));
+    if (stored?.version !== QUOTATION_STORAGE_VERSION) return emptyQuotation;
+    return buildQuotation(stored.items);
+  } catch {
+    return emptyQuotation;
+  }
+}
+
+function writeQuotation(quotation) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(QUOTATION_STORAGE_KEY, JSON.stringify({
+      version: QUOTATION_STORAGE_VERSION,
+      items: quotation.items,
+    }));
+  } catch {
+    // A disabled or full localStorage must not stop the current page.
+  }
+}
+
 function productIdFrom(productOrId) {
   const id = Number(typeof productOrId === 'object' ? productOrId?.id : productOrId);
   return Number.isFinite(id) && id > 0 ? id : null;
@@ -132,6 +209,9 @@ export function StoreProvider({ children }) {
   const [serverCart, setServerCart] = useState(emptyCart);
   const [guestCart, setGuestCart] = useState(initialGuestCart);
   const guestCartRef = useRef(initialGuestCart);
+  const initialQuotation = useMemo(readQuotation, []);
+  const [quotation, setQuotation] = useState(initialQuotation);
+  const quotationRef = useRef(initialQuotation);
   const refreshPromiseRef = useRef(null);
   const [favorites, setFavorites] = useState(emptyFavorites);
   const [loading, setLoading] = useState(false);
@@ -141,6 +221,13 @@ export function StoreProvider({ children }) {
     setGuestCart(nextCart);
     writeGuestCart(nextCart);
     return nextCart;
+  }, []);
+
+  const replaceQuotation = useCallback((nextQuotation) => {
+    quotationRef.current = nextQuotation;
+    setQuotation(nextQuotation);
+    writeQuotation(nextQuotation);
+    return nextQuotation;
   }, []);
 
   const refreshStore = useCallback(async () => {
@@ -191,10 +278,16 @@ export function StoreProvider({ children }) {
 
   useEffect(() => {
     function syncGuestCart(event) {
-      if (event.key !== GUEST_CART_STORAGE_KEY) return;
-      const nextCart = readGuestCart();
-      guestCartRef.current = nextCart;
-      setGuestCart(nextCart);
+      if (event.key === GUEST_CART_STORAGE_KEY) {
+        const nextCart = readGuestCart();
+        guestCartRef.current = nextCart;
+        setGuestCart(nextCart);
+      }
+      if (event.key === QUOTATION_STORAGE_KEY) {
+        const nextQuotation = readQuotation();
+        quotationRef.current = nextQuotation;
+        setQuotation(nextQuotation);
+      }
     }
 
     window.addEventListener('storage', syncGuestCart);
@@ -287,6 +380,46 @@ export function StoreProvider({ children }) {
 
   const clearGuestCart = useCallback(() => replaceGuestCart(emptyCart), [replaceGuestCart]);
 
+  const addToQuotation = useCallback((product, quantity = 1, options = {}) => {
+    const nextItem = quotationItem(product, quantity, options);
+    if (!nextItem) throw new Error('This product cannot be added to a quotation.');
+
+    const currentItems = quotationRef.current.items || [];
+    const existingItem = currentItems.find((item) => String(item.id) === String(nextItem.id));
+    const mergedItem = existingItem
+      ? quotationItem(product, Number(existingItem.quantity) + Number(nextItem.quantity), options)
+      : nextItem;
+    const nextItems = existingItem
+      ? currentItems.map((item) => String(item.id) === String(nextItem.id) ? mergedItem : item)
+      : [nextItem, ...currentItems];
+
+    return replaceQuotation(buildQuotation(nextItems));
+  }, [replaceQuotation]);
+
+  const changeQuotationQuantity = useCallback((itemId, quantity) => {
+    const requestedQuantity = Math.floor(Number(quantity));
+    if (!Number.isFinite(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > 9999) {
+      throw new Error('Choose a quantity from 1 to 9,999.');
+    }
+
+    const nextItems = quotationRef.current.items.map((item) => (
+      String(item.id) === String(itemId)
+        ? quotationItem(item.product, requestedQuantity, {
+          color: item.selected_color,
+          size: item.selected_size_option,
+        })
+        : item
+    ));
+    return replaceQuotation(buildQuotation(nextItems));
+  }, [replaceQuotation]);
+
+  const removeFromQuotation = useCallback((itemId) => {
+    const nextItems = quotationRef.current.items.filter((item) => String(item.id) !== String(itemId));
+    return replaceQuotation(buildQuotation(nextItems));
+  }, [replaceQuotation]);
+
+  const clearQuotation = useCallback(() => replaceQuotation(emptyQuotation), [replaceQuotation]);
+
   const addToFavorites = useCallback(async (productId) => {
     if (!isAuthenticated) throw new Error('Please log in to save favourites.');
     const data = await addFavoriteRequest(productId);
@@ -314,6 +447,12 @@ export function StoreProvider({ children }) {
     guestCartItems: guestCart.items || [],
     hasGuestCart: Number(guestCart.count || 0) > 0,
     clearGuestCart,
+    quotation,
+    quotationCount: Number(quotation.count || 0),
+    addToQuotation,
+    changeQuotationQuantity,
+    removeFromQuotation,
+    clearQuotation,
     favorites: favorites.favorites || [],
     favoriteCount: Number(favorites.count || 0),
     isFavorite: (productId) => favoriteIds.has(Number(productId)),
@@ -325,7 +464,7 @@ export function StoreProvider({ children }) {
     clearCart,
     addToFavorites,
     removeFromFavorites,
-  }), [addToCart, addToFavorites, cart, changeCartQuantity, clearCart, clearGuestCart, favoriteIds, favorites, guestCart, loading, refreshStore, removeFromFavorites, removeFromCart]);
+  }), [addToCart, addToFavorites, addToQuotation, cart, changeCartQuantity, changeQuotationQuantity, clearCart, clearGuestCart, clearQuotation, favoriteIds, favorites, guestCart, loading, quotation, refreshStore, removeFromFavorites, removeFromCart, removeFromQuotation]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

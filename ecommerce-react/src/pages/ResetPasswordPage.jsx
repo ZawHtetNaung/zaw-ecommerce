@@ -53,11 +53,11 @@ export default function ResetPasswordPage() {
           </label>
           <label>
             Email
-            <input className="form-control" name="email" type="email" value={form.email} onChange={updateField} required />
+            <input className="form-control" name="email" type="email" value={form.email} onChange={updateField} maxLength="255" autoComplete="email" required />
           </label>
           <label>
             New password
-            <input className="form-control" name="password" type="password" value={form.password} onChange={updateField} required />
+            <input className="form-control" name="password" type="password" value={form.password} onChange={updateField} minLength="8" maxLength="255" autoComplete="new-password" required />
           </label>
           <label>
             Confirm new password
@@ -67,6 +67,9 @@ export default function ResetPasswordPage() {
               type="password"
               value={form.password_confirmation}
               onChange={updateField}
+              minLength="8"
+              maxLength="255"
+              autoComplete="new-password"
               required
             />
           </label>

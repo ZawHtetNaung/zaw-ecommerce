@@ -74,13 +74,23 @@ api.interceptors.response.use(
   }
 );
 
-export async function register(payload) {
-  const { data } = await api.post('/api/register', payload);
+export async function customerRegister(payload) {
+  const { data } = await api.post('/api/customer/register', payload);
   return data;
 }
 
-export async function login(payload) {
-  const { data } = await api.post('/api/login', payload);
+export async function customerLogin(payload) {
+  const { data } = await api.post('/api/customer/login', payload);
+  return data;
+}
+
+export async function adminRegister(payload) {
+  const { data } = await api.post('/api/admin/register', payload);
+  return data;
+}
+
+export async function adminLogin(payload) {
+  const { data } = await api.post('/api/admin/login', payload);
   return data;
 }
 
@@ -252,6 +262,16 @@ export async function clearCart() {
   return data;
 }
 
+export async function fetchAdminAccounts() {
+  const { data } = await api.get('/api/admin-accounts');
+  return data;
+}
+
+export async function updateAdminAccountStatus(userId, status) {
+  const { data } = await api.patch(`/api/admin-accounts/${userId}/status`, { status });
+  return data;
+}
+
 export async function mergeGuestCart(items) {
   const { data } = await api.post('/api/cart/merge', { items }, {
     globalLoading: false,
@@ -266,6 +286,18 @@ export async function fetchCheckoutQuote(emirateCode, guestItems = null) {
     ...(isGuestQuote ? { items: guestItems } : {}),
   };
   const { data } = await api.post(isGuestQuote ? '/api/public/checkout/quote' : '/api/checkout/quote', payload, {
+    globalLoading: false,
+  });
+  return data;
+}
+
+export async function submitQuotationRequest(payload) {
+  const { data } = await api.post('/api/public/quotation-requests', payload);
+  return data;
+}
+
+export async function sendAiChatMessage(payload) {
+  const { data } = await api.post('/api/public/ai-chat', payload, {
     globalLoading: false,
   });
   return data;
@@ -462,6 +494,46 @@ export async function updateEvent(eventId, payload) {
 
 export async function deleteEvent(eventId) {
   const { data } = await api.delete(`/api/events/${eventId}`);
+  return data;
+}
+
+export async function fetchQuotationRequests() {
+  const { data } = await api.get('/api/quotation-requests');
+  return data;
+}
+
+export async function fetchQuotationRequest(quotationRequestId) {
+  const { data } = await api.get(`/api/quotation-requests/${quotationRequestId}`);
+  return data;
+}
+
+export async function updateQuotationRequest(quotationRequestId, payload) {
+  const { data } = await api.patch(`/api/quotation-requests/${quotationRequestId}`, payload);
+  return data;
+}
+
+export async function deleteQuotationRequest(quotationRequestId) {
+  const { data } = await api.delete(`/api/quotation-requests/${quotationRequestId}`);
+  return data;
+}
+
+export async function fetchAiKnowledgeEntries() {
+  const { data } = await api.get('/api/ai-knowledge');
+  return data;
+}
+
+export async function createAiKnowledgeEntry(payload) {
+  const { data } = await api.post('/api/ai-knowledge', payload);
+  return data;
+}
+
+export async function updateAiKnowledgeEntry(entryId, payload) {
+  const { data } = await api.put(`/api/ai-knowledge/${entryId}`, payload);
+  return data;
+}
+
+export async function deleteAiKnowledgeEntry(entryId) {
+  const { data } = await api.delete(`/api/ai-knowledge/${entryId}`);
   return data;
 }
 

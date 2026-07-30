@@ -12,7 +12,7 @@ class CategoryApiTest extends TestCase
 
     public function test_authenticated_user_can_crud_categories(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $token = $user->createToken('test_token')->plainTextToken;
 
         $create = $this->withHeader('Authorization', 'Bearer '.$token)

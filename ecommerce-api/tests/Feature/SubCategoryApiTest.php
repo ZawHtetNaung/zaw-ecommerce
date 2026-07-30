@@ -17,7 +17,7 @@ class SubCategoryApiTest extends TestCase
     {
         Storage::fake('public');
 
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $token = $user->createToken('test_token')->plainTextToken;
         $category = Category::create([
             'name' => 'Electronics',

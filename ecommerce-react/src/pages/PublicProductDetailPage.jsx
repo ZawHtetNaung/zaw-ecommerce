@@ -123,7 +123,7 @@ export default function PublicProductDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth();
-  const { addToCart, addToFavorites, removeFromFavorites, isFavorite } = useStore();
+  const { addToCart, addToQuotation, addToFavorites, removeFromFavorites, isFavorite } = useStore();
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -374,6 +374,32 @@ export default function PublicProductDetailPage() {
     }
 
     runProductAction('cart', () => addToCart(product, quantity));
+  }
+
+  function addSelectedProductToQuotation() {
+    const productColors = Array.isArray(product?.colors) ? product.colors : [];
+    const productSizes = Array.isArray(product?.size_options) ? product.size_options : [];
+
+    if (productColors.length > 0 && !selectedColorId) {
+      setOptionValidationAttempt((attempt) => attempt + 1);
+      setActionMessage('Please choose a colour first.');
+      return;
+    }
+
+    if (productSizes.length > 0 && !selectedSizeId) {
+      setOptionValidationAttempt((attempt) => attempt + 1);
+      setActionMessage('Please choose a size first.');
+      return;
+    }
+
+    addToQuotation({
+      ...product,
+      image_url: images[activeIndex]?.url || product.image_url,
+    }, quantity, {
+      color: selectedColor,
+      size: selectedSize,
+    });
+    navigate('/quotation');
   }
 
   async function runProductAction(type, callback) {
@@ -664,6 +690,16 @@ export default function PublicProductDetailPage() {
                     </svg>
                   </button>
                 </div>
+                <button
+                  type="button"
+                  className="pdp-quotation-button"
+                  onClick={addSelectedProductToQuotation}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 3h10l4 4v14H5zM14 3v5h5M8 12h8M8 16h8" />
+                  </svg>
+                  Add to quotation
+                </button>
                 {actionMessage && <div className="pdp-action-message" role="status">{actionMessage}</div>}
 
                 <div className="pdp-stock-line">

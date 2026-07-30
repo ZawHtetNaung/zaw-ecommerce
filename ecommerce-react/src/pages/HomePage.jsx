@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   API_BASE_URL,
   fetchPublicBanners,
@@ -11,7 +11,6 @@ import {
 } from '../api/client';
 import GoogleReviewsSection from '../components/GoogleReviewsSection';
 import StorefrontHeader from '../components/StorefrontHeader';
-import { useAuth } from '../context/AuthContext';
 import { isProductInStock } from '../utils/productStock';
 
 const rooms = [
@@ -171,8 +170,6 @@ function getBannerButtonStyle(banner) {
 }
 
 export default function HomePage() {
-  const navigate = useNavigate();
-  const { login, register } = useAuth();
   const [categories, setCategories] = useState([]);
   const [events, setEvents] = useState([]);
   const [banners, setBanners] = useState([]);
@@ -191,14 +188,6 @@ export default function HomePage() {
   const eventTrackRefs = useRef({});
   const productTrackRef = useRef(null);
   const apiBaseUrl = API_BASE_URL;
-  const [authModal, setAuthModal] = useState(null);
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', password_confirmation: '' });
-  const [loginError, setLoginError] = useState('');
-  const [registerError, setRegisterError] = useState('');
-  const [submittingLogin, setSubmittingLogin] = useState(false);
-  const [submittingRegister, setSubmittingRegister] = useState(false);
-  const dashboardPath = '/dashboard/overview';
 
   useEffect(() => {
     async function loadHomeData() {
@@ -414,65 +403,9 @@ export default function HomePage() {
     }
   }
 
-  function openLogin() {
-    setLoginError('');
-    setAuthModal('login');
-  }
-
-  function openRegister() {
-    setRegisterError('');
-    setAuthModal('register');
-  }
-
-  function closeAuthModal() {
-    setAuthModal(null);
-  }
-
-  function updateLoginField(event) {
-    const { name, value } = event.target;
-    setLoginForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  function updateRegisterField(event) {
-    const { name, value } = event.target;
-    setRegisterForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  async function handleLoginSubmit(event) {
-    event.preventDefault();
-    setLoginError('');
-    setSubmittingLogin(true);
-
-    try {
-      await login(loginForm);
-      closeAuthModal();
-      navigate(dashboardPath);
-    } catch (requestError) {
-      setLoginError(requestError.response?.data?.message || 'Login failed.');
-    } finally {
-      setSubmittingLogin(false);
-    }
-  }
-
-  async function handleRegisterSubmit(event) {
-    event.preventDefault();
-    setRegisterError('');
-    setSubmittingRegister(true);
-
-    try {
-      await register(registerForm);
-      closeAuthModal();
-      navigate(dashboardPath);
-    } catch (requestError) {
-      setRegisterError(requestError.response?.data?.message || 'Unable to register.');
-    } finally {
-      setSubmittingRegister(false);
-    }
-  }
-
   return (
     <div className="home-page premium-home">
-      <StorefrontHeader onLogin={openLogin} onRegister={openRegister} />
+      <StorefrontHeader />
 
       {sortedCategories.length > 0 && (
         <div className="category-nav">
@@ -896,117 +829,6 @@ export default function HomePage() {
         </a>
       </section>
 
-      {authModal && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="auth-modal">
-            <button type="button" className="auth-modal-close" onClick={closeAuthModal} aria-label="Close">
-              ×
-            </button>
-            {authModal === 'login' ? (
-              <div className="auth-modal-card">
-                <h1>Login</h1>
-                <form onSubmit={handleLoginSubmit} className="d-grid gap-3">
-                  <label>
-                    Email
-                    <input
-                      className="form-control"
-                      name="email"
-                      type="email"
-                      value={loginForm.email}
-                      onChange={updateLoginField}
-                      required
-                    />
-                  </label>
-                  <label>
-                    Password
-                    <input
-                      className="form-control"
-                      name="password"
-                      type="password"
-                      value={loginForm.password}
-                      onChange={updateLoginField}
-                      required
-                    />
-                  </label>
-                  {loginError && <p className="error-text mb-0">{loginError}</p>}
-                  <button className="btn btn-dark" type="submit" disabled={submittingLogin}>
-                    {submittingLogin ? 'Checking...' : 'Login'}
-                  </button>
-                </form>
-                <p className="mt-3 mb-0">
-                  New user?{' '}
-                  <button type="button" className="link-button" onClick={openRegister}>
-                    Register
-                  </button>
-                </p>
-                <p className="mb-0">
-                  Forgot password? <Link to="/forgot-password">Reset here</Link>
-                </p>
-              </div>
-            ) : (
-              <div className="auth-modal-card">
-                <h1>Create account</h1>
-                <form onSubmit={handleRegisterSubmit} className="d-grid gap-3">
-                  <label>
-                    Name
-                    <input
-                      className="form-control"
-                      name="name"
-                      type="text"
-                      value={registerForm.name}
-                      onChange={updateRegisterField}
-                      required
-                    />
-                  </label>
-                  <label>
-                    Email
-                    <input
-                      className="form-control"
-                      name="email"
-                      type="email"
-                      value={registerForm.email}
-                      onChange={updateRegisterField}
-                      required
-                    />
-                  </label>
-                  <label>
-                    Password
-                    <input
-                      className="form-control"
-                      name="password"
-                      type="password"
-                      value={registerForm.password}
-                      onChange={updateRegisterField}
-                      required
-                    />
-                  </label>
-                  <label>
-                    Confirm password
-                    <input
-                      className="form-control"
-                      name="password_confirmation"
-                      type="password"
-                      value={registerForm.password_confirmation}
-                      onChange={updateRegisterField}
-                      required
-                    />
-                  </label>
-                  {registerError && <p className="error-text mb-0">{registerError}</p>}
-                  <button className="btn btn-dark" type="submit" disabled={submittingRegister}>
-                    {submittingRegister ? 'Creating...' : 'Register'}
-                  </button>
-                </form>
-                <p className="mt-3 mb-0">
-                  Already have an account?{' '}
-                  <button type="button" className="link-button" onClick={openLogin}>
-                    Login
-                  </button>
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

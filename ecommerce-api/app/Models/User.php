@@ -23,6 +23,13 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'role',
+        'admin_status',
+        'phone',
+        'job_title',
+        'access_reason',
+        'approved_at',
+        'approved_by',
         'password',
     ];
 
@@ -45,8 +52,24 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'approved_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, ['admin', 'super_admin'], true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function canAccessDashboard(): bool
+    {
+        return $this->isAdmin() && $this->admin_status === 'approved';
     }
 
     public function cartItems(): HasMany
@@ -57,5 +80,10 @@ class User extends Authenticatable
     public function favoriteProducts(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'favorites')->withTimestamps();
+    }
+
+    public function quotationRequests(): HasMany
+    {
+        return $this->hasMany(QuotationRequest::class);
     }
 }

@@ -19,6 +19,7 @@ import {
   cilBasket,
   cilCalendar,
   cilColorBorder,
+  cilDescription,
   cilImage,
   cilLayers,
   cilList,
@@ -38,7 +39,7 @@ export default function AdminLayout() {
 
   async function handleLogout() {
     await logout();
-    navigate('/login');
+    navigate('/admin/login');
   }
 
   return (
@@ -58,6 +59,13 @@ export default function AdminLayout() {
               <CIcon customClassName="nav-icon" icon={cilPeople} /> Users
             </CNavLink>
           </CNavItem>
+          {user?.role === 'super_admin' && (
+            <CNavItem>
+              <CNavLink as={NavLink} to="/dashboard/admin-accounts">
+                <CIcon customClassName="nav-icon" icon={cilPeople} /> Admin Approvals
+              </CNavLink>
+            </CNavItem>
+          )}
           <CNavItem>
             <CNavLink as={NavLink} to="/dashboard/categories">
               <CIcon customClassName="nav-icon" icon={cilList} /> Categories
@@ -103,6 +111,16 @@ export default function AdminLayout() {
               <CIcon customClassName="nav-icon" icon={cilSearch} /> SEO
             </CNavLink>
           </CNavItem>
+          <CNavItem>
+            <CNavLink as={NavLink} to="/dashboard/quotations">
+              <CIcon customClassName="nav-icon" icon={cilDescription} /> Quotations
+            </CNavLink>
+          </CNavItem>
+          <CNavItem>
+            <CNavLink as={NavLink} to="/dashboard/ai-knowledge">
+              <CIcon customClassName="nav-icon" icon={cilDescription} /> AI Knowledge
+            </CNavLink>
+          </CNavItem>
           <CNavGroup toggler={<><CIcon customClassName="nav-icon" icon={cilBasket} /> Products</>}>
             <CNavItem>
               <CNavLink as={NavLink} to="/dashboard/products/create">
@@ -124,7 +142,9 @@ export default function AdminLayout() {
             <CHeaderToggler onClick={() => setSidebarVisible((prev) => !prev)} />
             <CHeaderBrand className="d-md-none">Admin</CHeaderBrand>
             <CHeaderNav className="ms-auto align-items-center gap-3">
-              <span className="text-body-secondary small">{user?.name}</span>
+              <span className="text-body-secondary small">
+                {user?.name} · {user?.role === 'super_admin' ? 'Super admin' : 'Admin'}
+              </span>
               <CButton color="dark" variant="outline" size="sm" onClick={handleLogout}>
                 Logout
               </CButton>

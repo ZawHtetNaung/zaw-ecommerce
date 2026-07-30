@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  adminLogin as adminLoginRequest,
+  adminRegister as adminRegisterRequest,
+  customerLogin as customerLoginRequest,
+  customerRegister as customerRegisterRequest,
   fetchCurrentUser,
-  login as loginRequest,
   logout as logoutRequest,
-  register as registerRequest
 } from '../api/client';
 
 const AuthContext = createContext(null);
@@ -35,14 +37,25 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function register(payload) {
-    const data = await registerRequest(payload);
+    const data = await customerRegisterRequest(payload);
     localStorage.setItem('auth_token', data.token);
     setUser(data.user);
     return data;
   }
 
   async function login(payload) {
-    const data = await loginRequest(payload);
+    const data = await customerLoginRequest(payload);
+    localStorage.setItem('auth_token', data.token);
+    setUser(data.user);
+    return data;
+  }
+
+  async function registerAdmin(payload) {
+    return adminRegisterRequest(payload);
+  }
+
+  async function loginAdmin(payload) {
+    const data = await adminLoginRequest(payload);
     localStorage.setItem('auth_token', data.token);
     setUser(data.user);
     return data;
@@ -65,9 +78,13 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       isAuthenticated: Boolean(user),
+      isAdmin: ['admin', 'super_admin'].includes(user?.role) && user?.admin_status === 'approved',
+      isSuperAdmin: user?.role === 'super_admin' && user?.admin_status === 'approved',
       loading,
       register,
       login,
+      registerAdmin,
+      loginAdmin,
       logout,
       updateUser
     }),

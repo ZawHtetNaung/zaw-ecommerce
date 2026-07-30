@@ -26,6 +26,8 @@ import PublicSubCategoryProductsPage from './pages/PublicSubCategoryProductsPage
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import QuotationPage from './pages/QuotationPage';
+import QuotationRequestsPage from './pages/QuotationRequestsPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 import ServicesPage from './pages/ServicesPage';
 import SubCategoriesPage from './pages/SubCategoriesPage';
@@ -33,6 +35,10 @@ import UsersPage from './pages/UsersPage';
 import SeoPage from './pages/SeoPage';
 import SizeOptionsPage from './pages/SizeOptionsPage';
 import PageSeo from './components/PageSeo';
+import AiKnowledgePage from './pages/AiKnowledgePage';
+import AdminAccountsPage from './pages/AdminAccountsPage';
+import AdminLoginPage from './pages/AdminLoginPage';
+import AdminRegisterPage from './pages/AdminRegisterPage';
 
 export default function App() {
   return (
@@ -58,20 +64,28 @@ export default function App() {
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/quotation" element={<QuotationPage />} />
         <Route path="/favourites" element={<ProtectedRoute><FavouritesPage /></ProtectedRoute>} />
       </Route>
+
+      <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/admin/register" element={<AdminRegisterPage />} />
 
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requireAdmin>
             <AdminLayout />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/dashboard/users" replace />} />
+        <Route index element={<Navigate to="/dashboard/overview" replace />} />
         <Route path="overview" element={<DashboardHomePage />} />
         <Route path="users" element={<UsersPage />} />
+        <Route
+          path="admin-accounts"
+          element={<ProtectedRoute requireSuperAdmin><AdminAccountsPage /></ProtectedRoute>}
+        />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="sub-categories" element={<SubCategoriesPage />} />
         <Route path="brands" element={<BrandsPage />} />
@@ -81,6 +95,8 @@ export default function App() {
         <Route path="events" element={<EventsPage />} />
         <Route path="banners" element={<BannersPage />} />
         <Route path="seo" element={<SeoPage />} />
+        <Route path="quotations" element={<QuotationRequestsPage />} />
+        <Route path="ai-knowledge" element={<AiKnowledgePage />} />
         <Route path="products" element={<Navigate to="/dashboard/products/list" replace />} />
         <Route path="products/create" element={<ProductCreatePage />} />
         <Route path="products/list" element={<ProductListPage />} />

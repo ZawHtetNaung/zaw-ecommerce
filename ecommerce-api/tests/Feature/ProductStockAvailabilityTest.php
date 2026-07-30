@@ -15,7 +15,7 @@ class ProductStockAvailabilityTest extends TestCase
 
     public function test_product_stock_switch_enforces_a_consistent_quantity(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $token = $user->createToken('stock-test')->plainTextToken;
         $category = Category::create([
             'name' => 'Furniture',

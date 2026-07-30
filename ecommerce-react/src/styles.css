@@ -3085,9 +3085,37 @@ body {
 }
 
 @media (max-width: 480px) {
-  .storefront-main-nav .home-auth { display: none; }
   .storefront-main-nav.home-nav { grid-template-columns: 112px 1fr; }
   .storefront-main-nav .home-icons { grid-column: 2; justify-self: end; }
+  .storefront-main-nav .home-auth {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: stretch;
+    justify-content: center;
+    width: 100%;
+    gap: 10px;
+  }
+  .storefront-main-nav .home-auth .auth-link {
+    min-height: 40px;
+    flex: 1 1 0;
+    padding: 0 18px;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .storefront-main-nav .home-auth .auth-link:last-child {
+    border-color: #171717;
+    background: #171717;
+    color: #fff;
+  }
+  .storefront-main-nav .home-auth .account-link {
+    justify-content: center;
+    width: 100%;
+  }
+  .storefront-main-nav .home-auth .account-link span { display: inline; }
   .store-product-grid,
   .favourites-grid { grid-template-columns: 1fr; }
   .news-card { grid-template-columns: 86px minmax(0, 1fr); }

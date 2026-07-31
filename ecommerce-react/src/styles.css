@@ -11455,13 +11455,92 @@ body {
 }
 
 .admin-shell .admin-data-table {
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
   border: 1px solid var(--admin-border);
   border-radius: 14px;
 }
 
+.app-data-table-shell {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-shell .admin-data-table .rdt_Table,
+.admin-shell .admin-data-table .rdt_TableHeadRow,
+.admin-shell .admin-data-table .rdt_TableRow {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-row-expand-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(226, 33, 28, 0.35);
+  border-radius: 9px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.admin-expanded-fields {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 16px;
+}
+
+.admin-expanded-field {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 13px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-surface);
+}
+
+.admin-expanded-field > strong {
+  color: var(--admin-muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.admin-expanded-field > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--admin-text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.admin-expanded-field .form-select {
+  width: 100%;
+}
+
 .admin-shell .admin-data-table .form-control {
   width: min(320px, 100%);
+}
+
+@media (max-width: 900px) {
+  .admin-expanded-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-expanded-fields {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
 }
 
 .admin-shell .pagination,
